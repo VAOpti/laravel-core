@@ -1,4 +1,14 @@
 {
+    "name": "vision-aura/laravel-core",
+    "type": "library",
+    "description": "This is an extension of the Laravel framework and the core package to build Laravel applications from.",
+    "license": "proprietary",
+    "authors": [
+        {
+            "name": "Ewald van 't Veer",
+            "email": "vaopti@gmail.com"
+        }
+    ],
     "require": {
         "php": "^8.2",
         "laravel/framework": "^10.28",
