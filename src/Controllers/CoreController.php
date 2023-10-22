@@ -6,12 +6,13 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use Illuminate\Foundation\Validation\ValidatesRequests;
 use Illuminate\Http\JsonResponse;
-use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
 use Illuminate\Routing\Redirector;
 use Ramsey\Collection\Exception\InvalidPropertyOrMethod;
 use Symfony\Component\ErrorHandler\Error\ClassNotFoundError;
 use VisionAura\LaravelCore\Http\Requests\CoreRequest;
+use VisionAura\LaravelCore\Http\Resources\GenericCollection;
+use VisionAura\LaravelCore\Http\Resources\GenericResource;
 use VisionAura\LaravelCore\Traits\HttpResponses;
 
 class CoreController extends Controller
@@ -27,20 +28,41 @@ class CoreController extends Controller
     /** @var class-string $request */
     public string $request;
 
-    public function show(Request $request, string $id): JsonResponse
-    {
-        $model = $this->resolveModelFrom($id);
+    protected JsonResponse $error;
 
-        return $this->success($model);
+    public function index(CoreRequest $request): GenericCollection|JsonResponse
+    {
+        if (! ($request = $this->resolveRequestFrom($request)) && isset($this->error)) {
+            return $this->error;
+        }
+
+        return new GenericCollection($this->model::all());
     }
 
+    public function show(CoreRequest $request, string $id): GenericResource|JsonResponse
+    {
+        if (! ($model = $this->resolveModelFrom($id)) && isset($this->error)) {
+            return $this->error;
+        }
+
+        return new GenericResource($model);
+    }
+
+    /**
+     * @param  string|null  $property
+     * @param  string       $subClassOf
+     *
+     * @return void
+     * @throws InvalidPropertyOrMethod
+     * @throws ClassNotFoundError
+     */
     private function validateProperty(?string $property, string $subClassOf): void
     {
-        $invalidPropertyException = new InvalidPropertyOrMethod(sprintf("The $subClassOf class for the %s was invalid.",
+        $invalidPropertyException = new InvalidPropertyOrMethod(sprintf("The $property class for the %s is invalid.",
             static::class), 501);
 
         if (! isset($property)) {
-            // Deduct the name from the controller class-string
+            // TODO: Deduct the name from the controller class-string
             throw $invalidPropertyException;
         }
 
@@ -53,9 +75,19 @@ class CoreController extends Controller
         }
     }
 
-    private function resolveModelFrom(string $id): Model
+    private function resolveModelFrom(string $id): ?Model
     {
-        $this->validateProperty($this->model ?? null, Model::class);
+        try {
+            $this->validateProperty($this->model ?? null, Model::class);
+        } catch (InvalidPropertyOrMethod $error) {
+            $this->error = $this->error('Server error', $error->getMessage(), code: 501);
+
+            return null;
+        } catch (ClassNotFoundError $error) {
+            $this->error = $this->error('Server error', $error->getMessage(), code: 501);
+
+            return null;
+        }
 
         /** @var Model $model */
         $model = new $this->model();
@@ -63,9 +95,19 @@ class CoreController extends Controller
         return $model->where($model->getKeyName(), $id)->firstOrFail();
     }
 
-    private function resolveRequestFrom(CoreRequest $baseRequest): CoreRequest
+    private function resolveRequestFrom(CoreRequest $baseRequest): ?CoreRequest
     {
-        $this->validateProperty($this->request ?? null, CoreRequest::class);
+        try {
+            $this->validateProperty($this->request ?? null, CoreRequest::class);
+        } catch (InvalidPropertyOrMethod $error) {
+            $this->error = $this->error('Server error', $error->getMessage(), code: 501);
+
+            return null;
+        } catch (ClassNotFoundError $error) {
+            $this->error = $this->error('Server error', $error->getMessage(), code: 501);
+
+            return null;
+        }
 
         /** @var CoreRequest $request */
         $request = $this->request::createFrom($baseRequest);
