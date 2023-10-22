@@ -20,18 +20,25 @@ class ValidateApplication
     public function handle(Request $request, Closure $next): Response
     {
         if (! $request->hasHeader('X-Application-Id')) {
-            return $this->error(message: 'Missing the \'X-Application-Id\' header', code: 400);
+            return $this->error(
+                'Missing information in request.',
+                'Missing the \'X-Application-Id\' header.',
+                code: 400);
         }
 
         if (! $request->hasHeader('X-Application-Secret')) {
-            return $this->error(message: 'Missing the \'X-Application-Secret\' header', code: 400);
+            return $this->error(
+                'Missing information in request.',
+                'Missing the \'X-Application-Secret\' header.',
+                code: 400);
         }
 
         $application = Application::where('id', $request->header('X-Application-Id'))->first();
 
         if (! $application) {
             return $this->error(
-                message: "The application '{$request->header('X-Application-Id')}' is not registered.",
+                "Application error.",
+                "The application '{$request->header('X-Application-Id')}' is not registered.",
                 code: 412
             );
         }
@@ -40,6 +47,6 @@ class ValidateApplication
             return $next($request);
         }
 
-        return $this->error(message: 'The application secret is incorrect.', code: 403);
+        return $this->error('Application error.', 'The application secret is incorrect.', code: 403);
     }
 }
