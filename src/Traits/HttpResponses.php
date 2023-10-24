@@ -9,8 +9,8 @@ use VisionAura\LaravelCore\Structs\ErrorStruct;
 
 trait HttpResponses
 {
-    /** @var ErrorStruct[] $errors */
-    private array $errors;
+    /** @var ErrorStruct[]|array{} $errors */
+    private array $errors = [];
 
     /** @throws InvalidStatusCodeException */
     protected function error(
