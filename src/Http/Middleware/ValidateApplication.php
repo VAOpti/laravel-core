@@ -5,6 +5,7 @@ namespace VisionAura\LaravelCore\Http\Middleware;
 use Closure;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
+use VisionAura\LaravelCore\Exceptions\InvalidStatusCodeException;
 use VisionAura\LaravelCore\Models\Application;
 use VisionAura\LaravelCore\Traits\HttpResponses;
 
@@ -16,21 +17,27 @@ class ValidateApplication
      * Handle an incoming request.
      *
      * @param  \Closure(\Illuminate\Http\Request): (\Symfony\Component\HttpFoundation\Response)  $next
+     *
+     * @throws InvalidStatusCodeException
      */
     public function handle(Request $request, Closure $next): Response
     {
         if (! $request->hasHeader('X-Application-Id')) {
-            return $this->error(
+            $this->pushError(
                 'Missing information in request.',
                 'Missing the \'X-Application-Id\' header.',
-                code: 400);
+                code: Response::HTTP_BAD_REQUEST);
         }
 
         if (! $request->hasHeader('X-Application-Secret')) {
-            return $this->error(
+            $this->pushError(
                 'Missing information in request.',
                 'Missing the \'X-Application-Secret\' header.',
-                code: 400);
+                code: Response::HTTP_BAD_REQUEST);
+        }
+
+        if ($this->hasErrors()) {
+            return $this->buildErrors();
         }
 
         $application = Application::where('id', $request->header('X-Application-Id'))->first();
@@ -47,6 +54,6 @@ class ValidateApplication
             return $next($request);
         }
 
-        return $this->error('Application error.', 'The application secret is incorrect.', code: 403);
+        return $this->error('Application error.', 'The application secret is incorrect.', code: Response::HTTP_FORBIDDEN);
     }
 }
