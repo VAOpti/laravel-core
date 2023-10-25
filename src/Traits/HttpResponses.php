@@ -27,7 +27,7 @@ trait HttpResponses
         $response = [];
 
         foreach ($this->errors as $error) {
-            $response[] = $this->toArray($error);
+            $response[] = $error->toArray();
         }
 
         return response()->json([

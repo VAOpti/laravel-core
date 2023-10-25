@@ -13,4 +13,17 @@ final readonly class ErrorStruct
     {
         //
     }
+
+    /** @return array<string, int|string> */
+    public function toArray(): array
+    {
+        return [
+            'status' => $this->status,
+            'source' => [
+                'pointer' => [$this->source]
+            ],
+            'title'  => $this->title,
+            'detail' => $this->detail,
+        ];
+    }
 }
