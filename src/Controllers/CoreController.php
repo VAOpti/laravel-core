@@ -81,11 +81,11 @@ class CoreController extends Controller
         try {
             $this->validateProperty($this->model ?? null, Model::class);
         } catch (InvalidPropertyOrMethod $error) {
-            $this->pushError('Server error', $error->getMessage(), code: Response::HTTP_NOT_IMPLEMENTED);
+            $this->pushError(__('Server error'), $error->getMessage(), code: Response::HTTP_NOT_IMPLEMENTED);
 
             return null;
         } catch (ClassNotFoundError $error) {
-            $this->pushError('Server error', $error->getMessage(), code: Response::HTTP_NOT_IMPLEMENTED);
+            $this->pushError(__('Server error'), $error->getMessage(), code: Response::HTTP_NOT_IMPLEMENTED);
 
             return null;
         }
@@ -101,11 +101,11 @@ class CoreController extends Controller
         try {
             $this->validateProperty($this->request ?? null, CoreRequest::class);
         } catch (InvalidPropertyOrMethod $error) {
-            $this->pushError('Server error', $error->getMessage(), code: Response::HTTP_NOT_IMPLEMENTED);
+            $this->pushError(__('Server error'), $error->getMessage(), code: Response::HTTP_NOT_IMPLEMENTED);
 
             return null;
         } catch (ClassNotFoundError $error) {
-            $this->pushError('Server error', $error->getMessage(), code: Response::HTTP_NOT_IMPLEMENTED);
+            $this->pushError(__('Server error'), $error->getMessage(), code: Response::HTTP_NOT_IMPLEMENTED);
 
             return null;
         }

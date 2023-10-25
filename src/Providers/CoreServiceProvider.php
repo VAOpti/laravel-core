@@ -12,6 +12,8 @@ class CoreServiceProvider extends ServiceProvider
 {
     public function register(): void
     {
+        $this->loadTranslationsFrom(__DIR__ . '/../../lang', 'core');
+
         Route::macro('jsonAPI', function ($name, $controller) {
             $controllerString = $controller;
 

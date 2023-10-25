@@ -19,7 +19,7 @@ class JsonApiValidationException extends ValidationException
         foreach ($messages as $source => $error) {
             foreach ($error as $errorMessage) {
                 $this->pushError(
-                    __('The given data was invalid.'),
+                    __('core::errors.The given data was invalid.'),
                     $errorMessage,
                     "data/attributes/$source",
                     Response::HTTP_UNPROCESSABLE_ENTITY);
