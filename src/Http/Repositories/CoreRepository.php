@@ -3,11 +3,11 @@
 namespace VisionAura\LaravelCore\Http\Repositories;
 
 use Illuminate\Database\Eloquent\Model;
-use VisionAura\LaravelCore\Traits\HttpResponses;
+use VisionAura\LaravelCore\Traits\HasErrorBag;
 
 class CoreRepository
 {
-    use HttpResponses;
+    use HasErrorBag;
 
     protected function simpleStore(Model $model, array $attributes): Model
     {

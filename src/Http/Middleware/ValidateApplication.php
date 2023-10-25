@@ -5,39 +5,43 @@ namespace VisionAura\LaravelCore\Http\Middleware;
 use Closure;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
+use VisionAura\LaravelCore\Exceptions\CoreException;
 use VisionAura\LaravelCore\Exceptions\InvalidStatusCodeException;
 use VisionAura\LaravelCore\Models\Application;
-use VisionAura\LaravelCore\Traits\HttpResponses;
+use VisionAura\LaravelCore\Traits\HasErrorBag;
 
 class ValidateApplication
 {
-    use HttpResponses;
+    use HasErrorBag;
 
     /**
      * Handle an incoming request.
      *
      * @param  \Closure(\Illuminate\Http\Request): (\Symfony\Component\HttpFoundation\Response)  $next
      *
+     * @throws CoreException
      * @throws InvalidStatusCodeException
      */
     public function handle(Request $request, Closure $next): Response
     {
         if (! $request->hasHeader('X-Application-Id')) {
-            $this->pushError(
+            $this->errors->push(
                 'Missing information in request.',
                 'Missing the \'X-Application-Id\' header.',
-                code: Response::HTTP_BAD_REQUEST);
+                'headers/X-Application-Id',
+                Response::HTTP_BAD_REQUEST);
         }
 
         if (! $request->hasHeader('X-Application-Secret')) {
-            $this->pushError(
+            $this->errors->push(
                 'Missing information in request.',
                 'Missing the \'X-Application-Secret\' header.',
-                code: Response::HTTP_BAD_REQUEST);
+                'headers/X-Application-Secret',
+                Response::HTTP_BAD_REQUEST);
         }
 
         if ($this->hasErrors()) {
-            return $this->buildErrors();
+            return $this->errors->build();
         }
 
         $application = Application::where('id', $request->header('X-Application-Id'))->first();
@@ -46,7 +50,8 @@ class ValidateApplication
             return $this->error(
                 "Application error.",
                 "The application '{$request->header('X-Application-Id')}' is not registered.",
-                code: 412
+                'headers/X-Application-Secret',
+                412
             );
         }
 
@@ -54,6 +59,11 @@ class ValidateApplication
             return $next($request);
         }
 
-        return $this->error('Application error.', 'The application secret is incorrect.', code: Response::HTTP_FORBIDDEN);
+        return $this->error(
+            'Application error.',
+            'The application secret is incorrect.',
+            'headers/X-Application-Secret',
+            Response::HTTP_FORBIDDEN
+        );
     }
 }
