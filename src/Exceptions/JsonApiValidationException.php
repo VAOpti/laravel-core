@@ -5,11 +5,11 @@ namespace VisionAura\LaravelCore\Exceptions;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Validation\ValidationException;
 use Symfony\Component\HttpFoundation\Response;
-use VisionAura\LaravelCore\Traits\HttpResponses;
+use VisionAura\LaravelCore\Traits\HasErrorBag;
 
 class JsonApiValidationException extends ValidationException
 {
-    use HttpResponses;
+    use HasErrorBag;
 
     public function render($request): JsonResponse
     {
@@ -18,7 +18,7 @@ class JsonApiValidationException extends ValidationException
 
         foreach ($messages as $source => $error) {
             foreach ($error as $errorMessage) {
-                $this->pushError(
+                $this->errors->push(
                     __('core::errors.The given data was invalid.'),
                     $errorMessage,
                     "data/attributes/$source",
@@ -26,7 +26,7 @@ class JsonApiValidationException extends ValidationException
             }
         }
 
-        return $this->buildErrors();
+        return $this->errors->build();
     }
 
 }

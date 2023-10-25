@@ -14,11 +14,11 @@ use Symfony\Component\HttpFoundation\Response;
 use VisionAura\LaravelCore\Http\Requests\CoreRequest;
 use VisionAura\LaravelCore\Http\Resources\GenericCollection;
 use VisionAura\LaravelCore\Http\Resources\GenericResource;
-use VisionAura\LaravelCore\Traits\HttpResponses;
+use VisionAura\LaravelCore\Traits\HasErrorBag;
 
 class CoreController extends Controller
 {
-    use AuthorizesRequests, ValidatesRequests, HttpResponses;
+    use AuthorizesRequests, ValidatesRequests, HasErrorBag;
 
     /** @var class-string $model */
     public string $model;
@@ -34,7 +34,7 @@ class CoreController extends Controller
     public function index(CoreRequest $request): GenericCollection|JsonResponse
     {
         if (! ($request = $this->resolveRequestFrom($request)) && $this->hasErrors()) {
-            return $this->buildErrors();
+            return $this->errors->build();
         }
 
         return new GenericCollection($this->model::all());
@@ -43,7 +43,7 @@ class CoreController extends Controller
     public function show(CoreRequest $request, string $id): GenericResource|JsonResponse
     {
         if (! ($model = $this->resolveModelFrom($id)) && $this->hasErrors()) {
-            return $this->buildErrors();
+            return $this->errors->build();
         }
 
         return new GenericResource($model);
@@ -81,11 +81,11 @@ class CoreController extends Controller
         try {
             $this->validateProperty($this->model ?? null, Model::class);
         } catch (InvalidPropertyOrMethod $error) {
-            $this->pushError(__('Server error'), $error->getMessage(), code: Response::HTTP_NOT_IMPLEMENTED);
+            $this->errors->push(__('Server error'), $error->getMessage());
 
             return null;
         } catch (ClassNotFoundError $error) {
-            $this->pushError(__('Server error'), $error->getMessage(), code: Response::HTTP_NOT_IMPLEMENTED);
+            $this->errors->push(__('Server error'), $error->getMessage());
 
             return null;
         }
@@ -101,11 +101,11 @@ class CoreController extends Controller
         try {
             $this->validateProperty($this->request ?? null, CoreRequest::class);
         } catch (InvalidPropertyOrMethod $error) {
-            $this->pushError(__('Server error'), $error->getMessage(), code: Response::HTTP_NOT_IMPLEMENTED);
+            $this->errors->push(__('Server error'), $error->getMessage());
 
             return null;
         } catch (ClassNotFoundError $error) {
-            $this->pushError(__('Server error'), $error->getMessage(), code: Response::HTTP_NOT_IMPLEMENTED);
+            $this->errors->push(__('Server error'), $error->getMessage());
 
             return null;
         }
