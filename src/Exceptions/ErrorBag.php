@@ -9,7 +9,7 @@ use VisionAura\LaravelCore\Structs\ErrorStruct;
 class ErrorBag
 {
     /** @var array<ErrorStruct> */
-    public array $bag;
+    public array $bag = [];
 
     public static function make(
         string $title,

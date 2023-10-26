@@ -28,7 +28,7 @@ trait HasErrorBag
         string $source = null,
         int $code = Response::HTTP_SERVICE_UNAVAILABLE
     ): JsonResponse {
-        return $this->errors->push($title, $detail, $source, $code)->build();
+        return $this->getErrors()->push($title, $detail, $source, $code)->build();
     }
 
     /**
@@ -36,6 +36,6 @@ trait HasErrorBag
      */
     protected function hasErrors(): true
     {
-        return ErrorBag::check($this->errors->bag);
+        return ErrorBag::check($this->getErrors()->bag);
     }
 }
