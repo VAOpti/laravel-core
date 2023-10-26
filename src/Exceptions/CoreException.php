@@ -2,13 +2,13 @@
 
 namespace VisionAura\LaravelCore\Exceptions;
 
-use Symfony\Component\HttpFoundation\Response;
+use Illuminate\Http\JsonResponse;
 use Throwable;
 use VisionAura\LaravelCore\Structs\ErrorStruct;
-use VisionAura\LaravelCore\Traits\HasErrorBag;
 
-class CoreException extends \Exception
+final class CoreException extends \Exception
 {
+    private array $errorBag;
 
     /**
      * @param  array<ErrorStruct>  $errorBag
@@ -20,6 +20,11 @@ class CoreException extends \Exception
     {
         parent::__construct($message, $code, $previous);
 
-        return ErrorBag::render($errorBag);
+        $this->errorBag = $errorBag;
+    }
+
+    public function render(): JsonResponse
+    {
+        return ErrorBag::render($this->errorBag);
     }
 }
