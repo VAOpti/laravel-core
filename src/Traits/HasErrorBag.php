@@ -33,7 +33,7 @@ trait HasErrorBag
     /**
      * @throws CoreException
      */
-    protected function checkErrors(): false
+    protected function checkErrors(): true
     {
         return ErrorBag::check($this->getErrors()->bag);
     }

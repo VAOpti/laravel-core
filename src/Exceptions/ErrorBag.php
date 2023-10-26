@@ -64,16 +64,16 @@ class ErrorBag
     /**
      * @param  array<ErrorStruct>  $errorBag
      *
-     * @return bool
+     * @return true
      * @throws CoreException
      */
-    public static function check(array $errorBag): false
+    public static function check(array $errorBag): true
     {
         if ($errorBag) {
             throw new CoreException($errorBag);
         }
 
-        return false;
+        return true;
     }
 
     /**
