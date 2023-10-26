@@ -18,7 +18,7 @@ class JsonApiValidationException extends ValidationException
 
         foreach ($messages as $source => $error) {
             foreach ($error as $errorMessage) {
-                $this->errors->push(
+                $this->getErrors()->push(
                     __('core::errors.The given data was invalid.'),
                     $errorMessage,
                     "data/attributes/$source",
@@ -26,7 +26,7 @@ class JsonApiValidationException extends ValidationException
             }
         }
 
-        return $this->errors->build();
+        return $this->getErrors()->build();
     }
 
 }

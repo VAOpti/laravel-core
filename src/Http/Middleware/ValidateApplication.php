@@ -25,7 +25,7 @@ class ValidateApplication
     public function handle(Request $request, Closure $next): Response
     {
         if (! $request->hasHeader('X-Application-Id')) {
-            $this->errors->push(
+            $this->getErrors()->push(
                 'Missing information in request.',
                 'Missing the \'X-Application-Id\' header.',
                 'headers/X-Application-Id',
@@ -33,7 +33,7 @@ class ValidateApplication
         }
 
         if (! $request->hasHeader('X-Application-Secret')) {
-            $this->errors->push(
+            $this->getErrors()->push(
                 'Missing information in request.',
                 'Missing the \'X-Application-Secret\' header.',
                 'headers/X-Application-Secret',
@@ -41,7 +41,7 @@ class ValidateApplication
         }
 
         if ($this->hasErrors()) {
-            return $this->errors->build();
+            return $this->getErrors()->build();
         }
 
         $application = Application::where('id', $request->header('X-Application-Id'))->first();

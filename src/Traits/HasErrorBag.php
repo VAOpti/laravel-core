@@ -10,11 +10,16 @@ use VisionAura\LaravelCore\Exceptions\InvalidStatusCodeException;
 
 trait HasErrorBag
 {
-    public ErrorBag $errors;
+    private ErrorBag $errors;
 
     public function __construct()
     {
         $this->errors = new ErrorBag();
+    }
+
+    protected function getErrors(): ErrorBag
+    {
+        return $this->errors ?? $this->errors = new ErrorBag();
     }
 
     protected function error(
