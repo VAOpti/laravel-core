@@ -67,13 +67,13 @@ class ErrorBag
      * @return bool
      * @throws CoreException
      */
-    public static function check(array $errorBag): true
+    public static function check(array $errorBag): false
     {
         if ($errorBag) {
             throw new CoreException($errorBag);
         }
 
-        return true;
+        return false;
     }
 
     /**

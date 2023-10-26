@@ -40,9 +40,7 @@ class ValidateApplication
                 Response::HTTP_BAD_REQUEST);
         }
 
-        if ($this->hasErrors()) {
-            return $this->getErrors()->build();
-        }
+        $this->checkErrors();
 
         $application = Application::where('id', $request->header('X-Application-Id'))->first();
 
