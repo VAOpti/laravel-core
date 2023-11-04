@@ -37,6 +37,14 @@ class CoreController extends Controller
             return $this->getErrors()->build();
         }
 
+        try {
+            $this->validateProperty($this->model ?? null, Model::class);
+        } catch (InvalidPropertyOrMethod $error) {
+            $this->getErrors()->push(__('Server error'), $error->getMessage());
+        } catch (ClassNotFoundError $error) {
+            $this->getErrors()->push(__('Server error'), $error->getMessage());
+        }
+
         return new GenericCollection($this->model::all());
     }
 
