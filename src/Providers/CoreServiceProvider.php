@@ -20,27 +20,39 @@ class CoreServiceProvider extends ServiceProvider
             if (($controller = new $controller()) instanceof CoreController) {
                 if (isset($controller->repository) && isset($controller->request)) {
                     $repository = new $controller->repository();
+
+                    $uri = "$name";
                     $key = Str::of($name)->singular()->value();
+                    $selfUri = "$name/{{$key}}";
+
+                    if(count($groupStack = Route::getGroupStack()) > 2) {
+                        $prefix = Str::of($groupStack[2]['prefix']);
+                        if ($prefix->contains('v1/')) {
+                            $parentKey = $prefix->remove('v1/')->singular();
+
+                            $selfUri = "{{$parentKey}}/relationships/{{$key}}";
+                        }
+                    }
 
                     if (method_exists($controller, 'index')) {
-                        Route::get("$name", "{$controllerString}@index");
+                        Route::get($uri, "{$controllerString}@index");
                     }
 
                     if (method_exists($controller, 'show')) {
-                        Route::get("$name/{{$key}}", "{$controllerString}@show");
+                        Route::get($selfUri, "{$controllerString}@show");
                     }
 
                     if (is_subclass_of($repository, CoreRepository::class)) {
                         if (method_exists($repository, 'store')) {
-                            Route::post("$name", "{$controller->repository}@store");
+                            Route::post($uri, "{$controller->repository}@store");
                         }
 
                         if (method_exists($repository, 'update')) {
-                            Route::match(['put', 'patch'], "$name/{{$key}}", "{$controller->repository}@update");
+                            Route::match(['put', 'patch'], $selfUri, "{$controller->repository}@update");
                         }
 
                         if (method_exists($repository, 'delete')) {
-                            Route::delete("$name/{{$key}}", "{$controller->repository}@delete");
+                            Route::delete($selfUri, "{$controller->repository}@delete");
                         }
                     }
                 }
