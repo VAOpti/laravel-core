@@ -79,6 +79,17 @@ class CoreController extends Controller
         return new GenericCollection($model->getRelations()[$relation]);
     }
 
+    public function delete(string $id): JsonResponse
+    {
+        if (! ($model = $this->resolveModelFrom($id)) && $this->hasErrors()) {
+            return $this->getErrors()->build();
+        }
+
+        $model->delete();
+
+        return response()->json(status: 204);
+    }
+
     /**
      * @param  string|null  $property
      * @param  string       $subClassOf

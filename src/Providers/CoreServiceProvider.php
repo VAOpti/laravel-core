@@ -49,6 +49,10 @@ class CoreServiceProvider extends ServiceProvider
                         if (method_exists($repository, 'delete')) {
                             Route::delete($selfUri, "{$controller->repository}@delete");
                         }
+
+                        if (method_exists($controller, 'delete')) {
+                            Route::delete($selfUri, "{$controllerString}@delete");
+                        }
                     }
                 }
             }
