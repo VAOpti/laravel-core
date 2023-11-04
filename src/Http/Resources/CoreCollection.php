@@ -10,6 +10,10 @@ class CoreCollection extends ResourceCollection
     /** @inheritDoc */
     public function toArray(Request $request): array
     {
+        if ($this->collection->isEmpty()) {
+            return [];
+        }
+
         return [
             'data' => $this->collection,
             'meta' => [

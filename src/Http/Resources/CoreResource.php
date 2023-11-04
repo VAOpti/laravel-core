@@ -5,6 +5,7 @@ namespace VisionAura\LaravelCore\Http\Resources;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Collection;
 
 class CoreResource extends JsonResource
 {
@@ -22,6 +23,10 @@ class CoreResource extends JsonResource
         parent::__construct($resource);
 
         $this->attributes = $this->resource->toArray();
+
+        if ($resource instanceof Collection && $resource->isEmpty()) {
+            return;
+        }
 
         $this->setType()->setTimestamps();
     }

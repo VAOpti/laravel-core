@@ -25,21 +25,16 @@ class CoreServiceProvider extends ServiceProvider
                     $key = Str::of($name)->singular()->value();
                     $selfUri = "$name/{{$key}}";
 
-                    if(count($groupStack = Route::getGroupStack()) > 2) {
-                        $prefix = Str::of($groupStack[2]['prefix']);
-                        if ($prefix->contains('v1/')) {
-                            $parentKey = $prefix->remove('v1/')->singular();
-
-                            $selfUri = "{{$parentKey}}/relationships/{{$key}}";
-                        }
-                    }
-
                     if (method_exists($controller, 'index')) {
                         Route::get($uri, "{$controllerString}@index");
                     }
 
                     if (method_exists($controller, 'show')) {
                         Route::get($selfUri, "{$controllerString}@show");
+                    }
+
+                    if (method_exists($controller, 'showRelation')) {
+                        Route::get("$name/{{$key}}/relationships/{relation}", "{$controllerString}@showRelation");
                     }
 
                     if (is_subclass_of($repository, CoreRepository::class)) {

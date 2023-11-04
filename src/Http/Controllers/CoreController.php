@@ -10,6 +10,7 @@ use Illuminate\Routing\Controller;
 use Illuminate\Routing\Redirector;
 use Ramsey\Collection\Exception\InvalidPropertyOrMethod;
 use Symfony\Component\ErrorHandler\Error\ClassNotFoundError;
+use Symfony\Component\HttpFoundation\Response;
 use VisionAura\LaravelCore\Http\Requests\CoreRequest;
 use VisionAura\LaravelCore\Http\Resources\GenericCollection;
 use VisionAura\LaravelCore\Http\Resources\GenericResource;
@@ -58,6 +59,26 @@ class CoreController extends Controller
         return new GenericResource($model);
     }
 
+    public function showRelation(CoreRequest $request, string $id, string $relation): GenericCollection|JsonResponse
+    {
+        if (! ($model = $this->resolveModelFrom($id)) && $this->hasErrors()) {
+            return $this->getErrors()->build();
+        }
+
+        if (! $model->isRelation($relation)) {
+            $this->getErrors()->push(
+                __('Could not find the requested resource.'),
+                'A non-existing relationship was requested.',
+                request()->getRequestUri(),
+                Response::HTTP_BAD_REQUEST
+            );
+        }
+
+        $model->load($relation);
+
+        return new GenericCollection($model->getRelations()[$relation]);
+    }
+
     /**
      * @param  string|null  $property
      * @param  string       $subClassOf
@@ -69,7 +90,7 @@ class CoreController extends Controller
     private function validateProperty(?string $property, string $subClassOf): void
     {
         $invalidPropertyException = new InvalidPropertyOrMethod(sprintf("The $property class for the %s is invalid.",
-            static::class), 501);
+            static::class));
 
         if (! isset($property)) {
             // TODO: Deduct the name from the controller class-string
