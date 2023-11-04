@@ -14,6 +14,9 @@ class ValidateApplication
 {
     use HasErrorBag;
 
+    /** @var class-string $applicationClass */
+    protected string $applicationClass = CoreApplication::class;
+
     /**
      * Handle an incoming request.
      *
@@ -42,7 +45,7 @@ class ValidateApplication
 
         $this->checkErrors();
 
-        $application = CoreApplication::where('id', $request->header('X-Application-Id'))->first();
+        $application = $this->applicationClass::where('id', $request->header('X-Application-Id'))->first();
 
         if (! $application) {
             return $this->error(
