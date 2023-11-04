@@ -45,6 +45,8 @@ class CoreController extends Controller
             $this->getErrors()->push(__('Server error'), $error->getMessage());
         }
 
+        $this->checkErrors();
+
         return new GenericCollection($this->model::all());
     }
 
