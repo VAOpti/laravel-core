@@ -7,7 +7,7 @@ use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
 use VisionAura\LaravelCore\Exceptions\CoreException;
 use VisionAura\LaravelCore\Exceptions\InvalidStatusCodeException;
-use VisionAura\LaravelCore\Models\Application;
+use VisionAura\LaravelCore\Models\CoreApplication;
 use VisionAura\LaravelCore\Traits\HasErrorBag;
 
 class ValidateApplication
@@ -42,7 +42,7 @@ class ValidateApplication
 
         $this->checkErrors();
 
-        $application = Application::where('id', $request->header('X-Application-Id'))->first();
+        $application = CoreApplication::where('id', $request->header('X-Application-Id'))->first();
 
         if (! $application) {
             return $this->error(
