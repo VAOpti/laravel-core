@@ -5,7 +5,7 @@ namespace VisionAura\LaravelCore\Providers;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Support\Str;
-use VisionAura\LaravelCore\Controllers\CoreController;
+use VisionAura\LaravelCore\Http\Controllers\CoreController;
 use VisionAura\LaravelCore\Http\Repositories\CoreRepository;
 
 class CoreServiceProvider extends ServiceProvider

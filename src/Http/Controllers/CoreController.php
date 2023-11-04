@@ -1,6 +1,6 @@
 <?php
 
-namespace VisionAura\LaravelCore\Controllers;
+namespace VisionAura\LaravelCore\Http\Controllers;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
@@ -10,7 +10,6 @@ use Illuminate\Routing\Controller;
 use Illuminate\Routing\Redirector;
 use Ramsey\Collection\Exception\InvalidPropertyOrMethod;
 use Symfony\Component\ErrorHandler\Error\ClassNotFoundError;
-use Symfony\Component\HttpFoundation\Response;
 use VisionAura\LaravelCore\Http\Requests\CoreRequest;
 use VisionAura\LaravelCore\Http\Resources\GenericCollection;
 use VisionAura\LaravelCore\Http\Resources\GenericResource;
