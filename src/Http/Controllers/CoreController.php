@@ -74,9 +74,7 @@ class CoreController extends Controller
             );
         }
 
-        $model->load($relation);
-
-        return new GenericCollection($model->getRelations()[$relation]);
+        return new GenericCollection($model->load($relation)->getRelation($relation));
     }
 
     public function delete(string $id): JsonResponse
