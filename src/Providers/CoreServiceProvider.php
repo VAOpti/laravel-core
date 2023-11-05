@@ -33,8 +33,8 @@ class CoreServiceProvider extends ServiceProvider
                         Route::get($selfUri, "{$controllerString}@show");
                     }
 
-                    if (method_exists($controller, 'showRelation')) {
-                        Route::get("$name/{{$key}}/relationships/{relation}", "{$controllerString}@showRelation");
+                    if (method_exists($controller, 'indexRelation')) {
+                        Route::get("$name/{{$key}}/relationships/{relation}", "{$controllerString}@indexRelation");
                     }
 
                     if (is_subclass_of($repository, CoreRepository::class)) {
