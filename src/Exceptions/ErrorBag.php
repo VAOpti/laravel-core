@@ -62,12 +62,12 @@ class ErrorBag
     }
 
     /**
-     * @param  array<ErrorStruct>  $errorBag
+     * @param  array<ErrorStruct>|array{}|null  $errorBag
      *
      * @return true
      * @throws CoreException
      */
-    public static function check(array $errorBag): true
+    public static function check(?array $errorBag): true
     {
         if ($errorBag) {
             throw new CoreException($errorBag);

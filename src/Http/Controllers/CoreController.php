@@ -11,9 +11,12 @@ use Illuminate\Routing\Redirector;
 use Ramsey\Collection\Exception\InvalidPropertyOrMethod;
 use Symfony\Component\ErrorHandler\Error\ClassNotFoundError;
 use Symfony\Component\HttpFoundation\Response;
+use VisionAura\LaravelCore\Exceptions\CoreException;
+use VisionAura\LaravelCore\Exceptions\InvalidStatusCodeException;
 use VisionAura\LaravelCore\Http\Requests\CoreRequest;
 use VisionAura\LaravelCore\Http\Resources\GenericCollection;
 use VisionAura\LaravelCore\Http\Resources\GenericResource;
+use VisionAura\LaravelCore\Interfaces\RelationInterface;
 use VisionAura\LaravelCore\Traits\HasErrorBag;
 
 class CoreController extends Controller
@@ -29,8 +32,10 @@ class CoreController extends Controller
     /** @var class-string $request */
     public string $request;
 
-    protected JsonResponse $error;
-
+    /**
+     * @throws CoreException
+     * @throws InvalidStatusCodeException
+     */
     public function index(CoreRequest $request): GenericCollection|JsonResponse
     {
         if (! ($request = $this->resolveRequestFrom($request)) && $this->hasErrors()) {
@@ -40,14 +45,36 @@ class CoreController extends Controller
         try {
             $this->validateProperty($this->model ?? null, Model::class);
         } catch (InvalidPropertyOrMethod $error) {
-            $this->getErrors()->push(__('Server error'), $error->getMessage());
+            $this->getErrors()->push(__('core::errors.Server error'), $error->getMessage());
         } catch (ClassNotFoundError $error) {
-            $this->getErrors()->push(__('Server error'), $error->getMessage());
+            $this->getErrors()->push(__('core::errors.Server error'), $error->getMessage());
         }
 
         $this->checkErrors();
 
         return new GenericCollection($this->model::all());
+    }
+
+    /**
+     * @throws CoreException
+     */
+    public function indexRelation(CoreRequest $request, string $id, string $relation): GenericCollection|JsonResponse
+    {
+        if (! ($model = $this->resolveModelFrom($id)) && $this->hasErrors()) {
+            return $this->getErrors()->build();
+        }
+
+        if (! $model instanceof RelationInterface && ! $model instanceof Model) {
+            return $this->error(
+                __('core::errors.Server error'),
+                'Can not resolve the provided relation.',
+                code: Response::HTTP_NOT_IMPLEMENTED
+            );
+        }
+
+        $relation = $model->resolveRelation($relation);
+
+        return new GenericCollection($model->load($relation)->getRelation($relation));
     }
 
     public function show(CoreRequest $request, string $id): GenericResource|JsonResponse
@@ -57,24 +84,6 @@ class CoreController extends Controller
         }
 
         return new GenericResource($model);
-    }
-
-    public function showRelation(CoreRequest $request, string $id, string $relation): GenericCollection|JsonResponse
-    {
-        if (! ($model = $this->resolveModelFrom($id)) && $this->hasErrors()) {
-            return $this->getErrors()->build();
-        }
-
-        if (! $model->isRelation($relation)) {
-            $this->getErrors()->push(
-                __('Could not find the requested resource.'),
-                'A non-existing relationship was requested.',
-                request()->getRequestUri(),
-                Response::HTTP_BAD_REQUEST
-            );
-        }
-
-        return new GenericCollection($model->load($relation)->getRelation($relation));
     }
 
     public function delete(string $id): JsonResponse
@@ -120,11 +129,11 @@ class CoreController extends Controller
         try {
             $this->validateProperty($this->model ?? null, Model::class);
         } catch (InvalidPropertyOrMethod $error) {
-            $this->getErrors()->push(__('Server error'), $error->getMessage());
+            $this->getErrors()->push(__('core::errors.Server error'), $error->getMessage());
 
             return null;
         } catch (ClassNotFoundError $error) {
-            $this->getErrors()->push(__('Server error'), $error->getMessage());
+            $this->getErrors()->push(__('core::errors.Server error'), $error->getMessage());
 
             return null;
         }
@@ -140,11 +149,11 @@ class CoreController extends Controller
         try {
             $this->validateProperty($this->request ?? null, CoreRequest::class);
         } catch (InvalidPropertyOrMethod $error) {
-            $this->getErrors()->push(__('Server error'), $error->getMessage());
+            $this->getErrors()->push(__('core::errors.Server error'), $error->getMessage());
 
             return null;
         } catch (ClassNotFoundError $error) {
-            $this->getErrors()->push(__('Server error'), $error->getMessage());
+            $this->getErrors()->push(__('core::errors.Server error'), $error->getMessage());
 
             return null;
         }
