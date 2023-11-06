@@ -33,6 +33,10 @@ final class RelationService
 
     protected function validateRelations(): true
     {
+        if (! $this->hasRelations) {
+            return true;
+        }
+
         foreach ($this->relations as $relation) {
             if (! $this->model->isRelation($relation)) {
                 $this->getErrors()->push(
