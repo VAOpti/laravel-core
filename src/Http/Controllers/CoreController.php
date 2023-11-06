@@ -53,7 +53,7 @@ class CoreController extends Controller
 
         $this->checkErrors();
 
-        return (new ApiResponse(new $this->model()))->index();
+        return (new ApiResponse(new $this->model()))->compound();
     }
 
     /**

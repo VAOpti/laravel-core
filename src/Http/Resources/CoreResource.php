@@ -29,13 +29,13 @@ class CoreResource extends JsonResource
     {
         parent::__construct($resource);
 
-        $this->attributes = $this->resource instanceof Model ? $this->resource->toArray() : $this->resource;
+        $this->attributes = $this->resource instanceof Model ? $this->resource->attributesToArray() : $this->resource;
 
         if ($resource instanceof Collection && $resource->isEmpty()) {
             return;
         }
 
-        $this->setType()->setTimestamps()->setRelations();
+        $this->setType()->setTimestamps()->setRelations()->setIncludes();
     }
 
     /**
@@ -52,6 +52,42 @@ class CoreResource extends JsonResource
             'timestamps'    => $this->when((bool) $this->timestamps, $this->timestamps),
             'relationships' => $this->when((bool) $this->relations, $this->relations),
         ];
+    }
+
+    /** @inheritdoc */
+    public function with(Request $request): array
+    {
+        if (! $this->includes) {
+            return [];
+        }
+
+        return [
+            'included' => $this->includes,
+        ];
+    }
+
+    /** @return array<mixed> */
+    public static function mapIncludes(Model $model): array
+    {
+        $includes = [];
+
+        /**
+         * @var string  $name
+         * @var Model[]|Collection|null $loadedRelations
+         */
+        foreach ($model->getRelations() as $name => $loadedRelations) {
+            if (! $loadedRelations || ($loadedRelations instanceof Collection && $loadedRelations->isEmpty())) {
+                $includes[ $name ][] = null;
+
+                continue;
+            }
+
+            foreach ($loadedRelations as $relation) {
+                $includes[ $name ][] = (new self($relation))->toArray(request());
+            }
+        }
+
+        return $includes;
     }
 
     protected function setType(): self
@@ -113,6 +149,17 @@ class CoreResource extends JsonResource
 
             $this->relations[ $name ] = $fields;
         }
+
+        return $this;
+    }
+
+    protected function setIncludes(): self
+    {
+        if (! $this->resource instanceof Model) {
+            return $this;
+        }
+
+        static::mapIncludes($this->resource);
 
         return $this;
     }

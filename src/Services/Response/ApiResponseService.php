@@ -24,7 +24,7 @@ final class ApiResponseService
         $this->pagination = new PaginateService($model);
     }
 
-    public function index(): GenericCollection
+    public function compound(): GenericCollection
     {
         $name = (string) Str::of(class_basename($this->model))->plural()->lower();
         $attributes = $this->attributes->get($this->model, $name);
@@ -36,7 +36,6 @@ final class ApiResponseService
             $collection->load($this->includes->relations);
         }
 
-        // TODO: Response: Place the relations in an included field
         return new GenericCollection($collection);
     }
 
