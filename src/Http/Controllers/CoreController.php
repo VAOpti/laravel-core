@@ -17,6 +17,7 @@ use VisionAura\LaravelCore\Http\Requests\CoreRequest;
 use VisionAura\LaravelCore\Http\Resources\GenericCollection;
 use VisionAura\LaravelCore\Http\Resources\GenericResource;
 use VisionAura\LaravelCore\Interfaces\RelationInterface;
+use VisionAura\LaravelCore\Services\Response\ApiResponseService as ApiResponse;
 use VisionAura\LaravelCore\Traits\HasErrorBag;
 
 class CoreController extends Controller
@@ -52,7 +53,7 @@ class CoreController extends Controller
 
         $this->checkErrors();
 
-        return new GenericCollection($this->model::all());
+        return (new ApiResponse(new $this->model()))->index();
     }
 
     /**

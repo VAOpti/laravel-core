@@ -2,6 +2,7 @@
 
 namespace VisionAura\LaravelCore\Http\Resources;
 
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 use Illuminate\Support\Carbon;
@@ -22,7 +23,7 @@ class CoreResource extends JsonResource
     {
         parent::__construct($resource);
 
-        $this->attributes = $this->resource->toArray();
+        $this->attributes = $this->resource instanceof Model ? $this->resource->toArray() : $this->resource;
 
         if ($resource instanceof Collection && $resource->isEmpty()) {
             return;
