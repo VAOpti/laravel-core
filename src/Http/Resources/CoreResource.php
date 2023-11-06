@@ -46,10 +46,11 @@ class CoreResource extends JsonResource
     public function toArray(Request $request): array
     {
         return [
-            'type'       => $this->type,
-            'id'         => $this->{$this->resource->getKeyName()},
-            'attributes' => $this->attributes,
-            'timestamps' => $this->when((bool) $this->timestamps, $this->timestamps)
+            'type'          => $this->type,
+            'id'            => $this->{$this->resource->getKeyName()},
+            'attributes'    => $this->attributes,
+            'timestamps'    => $this->when((bool) $this->timestamps, $this->timestamps),
+            'relationships' => $this->when((bool) $this->relations, $this->relations),
         ];
     }
 
