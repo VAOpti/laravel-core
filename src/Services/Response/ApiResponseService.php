@@ -5,6 +5,7 @@ namespace VisionAura\LaravelCore\Services\Response;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Str;
 use VisionAura\LaravelCore\Http\Resources\GenericCollection;
+use VisionAura\LaravelCore\Http\Resources\GenericResource;
 
 final class ApiResponseService
 {
@@ -24,7 +25,7 @@ final class ApiResponseService
         $this->pagination = new PaginateService($model);
     }
 
-    public function compound(): GenericCollection
+    public function collection(): GenericCollection
     {
         $name = (string) Str::of(class_basename($this->model))->plural()->lower();
         $attributes = $this->attributes->get($this->model, $name);
@@ -39,4 +40,8 @@ final class ApiResponseService
         return new GenericCollection($collection);
     }
 
+    public function resource(): GenericResource
+    {
+        return new GenericResource($this->model);
+    }
 }

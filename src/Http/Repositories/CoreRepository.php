@@ -4,11 +4,12 @@ namespace VisionAura\LaravelCore\Http\Repositories;
 
 use Illuminate\Database\Eloquent\Model;
 use VisionAura\LaravelCore\Http\Requests\CoreRequest;
+use VisionAura\LaravelCore\Traits\ApiResponse;
 use VisionAura\LaravelCore\Traits\HasErrorBag;
 
 class CoreRepository
 {
-    use HasErrorBag;
+    use HasErrorBag, ApiResponse;
 
     protected Model $model;
 
