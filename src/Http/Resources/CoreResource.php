@@ -82,6 +82,12 @@ class CoreResource extends JsonResource
                 continue;
             }
 
+            if ($loadedRelations instanceof Model) {
+                $includes[ $name ][] = (new self($loadedRelations))->toArray(request());
+
+                continue;
+            }
+
             foreach ($loadedRelations as $relation) {
                 $includes[ $name ][] = (new self($relation))->toArray(request());
             }
@@ -156,6 +162,18 @@ class CoreResource extends JsonResource
                 'links' => [],
                 'data'  => []
             ];
+
+            if ($loadedRelations instanceof Model) {
+                $id = $loadedRelations->{$loadedRelations->getKeyName()};
+                $fields[ 'data' ][] = [
+                    'type' => $name,
+                    'id'   => $id,
+                ];
+
+                $this->relations[ $name ] = $fields;
+
+                continue;
+            }
 
             foreach ($loadedRelations as $relation) {
                 $id = $relation->{$relation->getKeyName()};
