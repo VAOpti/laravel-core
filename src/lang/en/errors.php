@@ -4,6 +4,5 @@ return [
     'The given data was invalid.' => 'The given data was invalid.',
     'Server error' => 'Server error',
     'Could not find the requested resource.' => 'Could not find the requested resource.',
-    'Could not find the specified relation.' => 'Could not find the specified relation.',
     'Pagination failed' => 'Pagination failed',
 ];

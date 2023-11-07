@@ -13,7 +13,7 @@ trait Relations
     /** @inheritdoc */
     public function resolveRelation(string $relation): string
     {
-        assert($this instanceof Model);
+        assert($this instanceof Model, 'This trait should only be used on instances of Illuminate\Database\Eloquent\Model');
 
         if ($this->isRelation($relation)) {
             return $relation;

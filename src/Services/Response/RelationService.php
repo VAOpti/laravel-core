@@ -4,6 +4,8 @@ namespace VisionAura\LaravelCore\Services\Response;
 
 use Illuminate\Database\Eloquent\Model;
 use Symfony\Component\HttpFoundation\Response;
+use VisionAura\LaravelCore\Exceptions\CoreException;
+use VisionAura\LaravelCore\Interfaces\RelationInterface;
 use VisionAura\LaravelCore\Traits\HasErrorBag;
 
 class RelationService
@@ -14,12 +16,15 @@ class RelationService
 
     public array $relations = [];
 
-    protected Model $model;
+    /** @var RelationInterface $model */
+    protected RelationInterface $model;
 
     /**
-     * @param  Model  $model  The model to retrieve relations from
+     * @param  RelationInterface  $model  The model to retrieve relations from
+     *
+     * @throws CoreException
      */
-    public function __construct(Model $model)
+    public function __construct(RelationInterface $model)
     {
         $this->model = $model;
 
@@ -31,6 +36,9 @@ class RelationService
         $this->validateRelations();
     }
 
+    /**
+     * @throws CoreException
+     */
     protected function validateRelations(): true
     {
         if (! $this->hasRelations) {
@@ -38,17 +46,8 @@ class RelationService
         }
 
         foreach ($this->relations as $relation) {
-            if (! $this->model->isRelation($relation)) {
-                $this->getErrors()->push(
-                    __('Could not find the specified relation.'),
-                    sprintf("The relation '$relation' does not exist on '%s'", get_class($this->model)),
-                    'include='.request()->query->getString('include'),
-                    Response::HTTP_BAD_REQUEST
-                );
-            }
+            $this->model->resolveRelation($relation);
         }
-
-        $this->checkErrors();
 
         return true;
     }
