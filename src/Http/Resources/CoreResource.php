@@ -29,7 +29,7 @@ class CoreResource extends JsonResource
     {
         parent::__construct($resource);
 
-        $this->attributes = $this->resource instanceof Model ? $this->resource->attributesToArray() : $this->resource;
+        $this->setAttributes();
 
         if ($resource instanceof Collection && $resource->isEmpty()) {
             return;
@@ -88,6 +88,24 @@ class CoreResource extends JsonResource
         }
 
         return $includes;
+    }
+
+    protected function setAttributes(): self
+    {
+        if ($this->resource instanceof Model) {
+            $this->attributes = $this->resource->attributesToArray();
+
+            $id = $this->resource->getKeyName();
+            if (array_key_exists($id, $this->attributes)) {
+                unset($this->attributes[$id]);
+            }
+
+            return $this;
+        }
+
+        $this->attributes = $this->resource;
+
+        return $this;
     }
 
     protected function setType(): self
