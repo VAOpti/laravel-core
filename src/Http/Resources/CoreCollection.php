@@ -17,10 +17,23 @@ class CoreCollection extends ResourceCollection
 
         return [
             'data' => $this->collection,
-            'included' => $this->getIncludes(),
             'meta' => [
                 'count' => $this->collection->count()
             ]
+        ];
+    }
+
+    /** @inheritdoc */
+    public function with(Request $request): array
+    {
+        $includes = $this->getIncludes();
+
+        if (! $includes) {
+            return [];
+        }
+
+        return [
+            'included' => $includes,
         ];
     }
 
