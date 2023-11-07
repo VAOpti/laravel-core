@@ -30,7 +30,21 @@ class CoreCollection extends ResourceCollection
 
         /** @var JsonResource $resource */
         foreach ($this->collection as $resource) {
-            $includes[] = CoreResource::mapIncludes($resource->resource);
+            foreach (CoreResource::mapIncludes($resource->resource) as $relation => $resourceIncludes) {
+                foreach ($resourceIncludes as $resourceInclude) {
+                    if (! array_key_exists($relation, $includes) && ! $resourceInclude) {
+                        $includes[$relation] = [];
+
+                        continue;
+                    }
+
+                    if (! $resourceInclude) {
+                        continue;
+                    }
+
+                    $includes[$relation][] = $resourceInclude;
+                }
+            }
         }
 
         return $includes;
