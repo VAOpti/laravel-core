@@ -6,7 +6,7 @@ use Illuminate\Database\Eloquent\Model;
 use Symfony\Component\HttpFoundation\Response;
 use VisionAura\LaravelCore\Traits\HasErrorBag;
 
-final class RelationService
+class RelationService
 {
     use HasErrorBag;
 

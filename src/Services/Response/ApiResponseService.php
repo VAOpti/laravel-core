@@ -7,35 +7,22 @@ use Illuminate\Support\Str;
 use VisionAura\LaravelCore\Http\Resources\GenericCollection;
 use VisionAura\LaravelCore\Http\Resources\GenericResource;
 
-final class ApiResponseService
+class ApiResponseService
 {
     protected Model $model;
 
-    protected AttributeService $attributes;
-
-    protected RelationService $includes;
-
-    protected PaginateService $pagination;
+    public QueryResolveService $queryResolver;
 
     public function __construct(Model $model)
     {
         $this->model = $model;
-        $this->attributes = new AttributeService();
-        $this->includes = new RelationService($model);
-        $this->pagination = new PaginateService($model);
+        $this->queryResolver = new QueryResolveService($model);
     }
 
     public function collection(): GenericCollection
     {
-        $name = (string) Str::of(class_basename($this->model))->plural()->lower();
-        $attributes = $this->attributes->get($this->model, $name);
-
-        $collectionQuery = $this->model::select($attributes);
-        $collection = $this->pagination->handle($collectionQuery);
-
-        if ($this->includes->hasRelations) {
-            $collection->load($this->includes->relations);
-        }
+        $collectionQuery = $this->model::select($this->queryResolver->attributes());
+        $collection = $this->queryResolver->resolve($collectionQuery);
 
         return new GenericCollection($collection);
     }

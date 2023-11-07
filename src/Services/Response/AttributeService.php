@@ -8,7 +8,7 @@ use Symfony\Component\HttpFoundation\Response;
 use VisionAura\LaravelCore\Exceptions\CoreException;
 use VisionAura\LaravelCore\Exceptions\ErrorBag;
 
-final class AttributeService
+class AttributeService
 {
     public bool $hasHiddenAttributes = false;
 

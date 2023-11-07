@@ -49,15 +49,6 @@ class PaginateService
         $this->params[ 'limit' ] = $model->getPerPage();
     }
 
-    public function handle(Builder $query): Collection|LengthAwarePaginator
-    {
-        if ($this->hasPagination) {
-            return $query->paginate(perPage: $this->getPerPage(), page: $this->getPage());
-        }
-
-        return $query->get();
-    }
-
     public function getPage(): int
     {
         return $this->getOffset() + 1;
