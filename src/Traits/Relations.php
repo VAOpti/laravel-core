@@ -28,7 +28,7 @@ trait Relations
                 $errorBag = ErrorBag::make(
                     __('core::errors.Could not find the requested resource.'),
                     "Did you mean the following relation: '$guess'?",
-                    request()->getRequestUri(),
+                    ErrorBag::paramsFromQuery('include'),
                     Response::HTTP_BAD_REQUEST
                 );
             }
@@ -39,7 +39,7 @@ trait Relations
         throw new CoreException(ErrorBag::make(
             __('core::errors.Could not find the requested resource.'),
             'A non-existing relationship was requested.',
-            request()->getRequestUri(),
+            ErrorBag::paramsFromQuery('include'),
             Response::HTTP_BAD_REQUEST
         )->bag);
     }

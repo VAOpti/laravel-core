@@ -73,8 +73,8 @@ final class QueryResolveService
         } catch (QueryException $exception) {
             throw new CoreException(ErrorBag::make(
                 __('core::errors.Server error'),
-                '',
-                ErrorBag::paramsFromQuery('filter'),
+                'An unknown field was requested.',
+                ErrorBag::paramsFromQuery('fields'),
                 Response::HTTP_INTERNAL_SERVER_ERROR)->bag
             );
         }

@@ -86,7 +86,7 @@ class ErrorBag
      */
     public static function paramsFromQuery(string $parameter): ?string
     {
-        $arguments = request()->query->filter($parameter, options: ['flags' => \FILTER_REQUIRE_ARRAY]);
+        $arguments = request()->query->filter($parameter, options: ['flags' => \FILTER_FORCE_ARRAY]);
 
         if (! $arguments) {
             return null;
@@ -95,7 +95,11 @@ class ErrorBag
         $string = '';
 
         foreach (array_flatten($arguments, '][') as $key => $argument) {
-            $string .= $parameter."[{$key}]={$argument} | ";
+            if (is_string($key)) {
+                $string .= $parameter."[{$key}]={$argument} | ";
+            } else {
+                $string .= "$parameter={$argument} | ";
+            }
         }
 
         return Str::of($string)->replaceLast(' | ', '')->value();
