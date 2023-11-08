@@ -4,10 +4,14 @@ namespace VisionAura\LaravelCore\Services\Response;
 
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\QueryException;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
+use Symfony\Component\HttpFoundation\Response;
+use VisionAura\LaravelCore\Exceptions\CoreException;
+use VisionAura\LaravelCore\Exceptions\ErrorBag;
 
 final class QueryResolveService
 {
@@ -59,11 +63,20 @@ final class QueryResolveService
 
     public function resolve(Builder $query): Collection|LengthAwarePaginator
     {
-        if ($this->pagination->hasPagination) {
-            $collection = $query->paginate(perPage: $this->pagination->getPerPage(),
-                page: $this->pagination->getPage());
-        } else {
-            $collection = $query->get();
+        try {
+            if ($this->pagination->hasPagination) {
+                $collection = $query->paginate(perPage: $this->pagination->getPerPage(),
+                    page: $this->pagination->getPage());
+            } else {
+                $collection = $query->get();
+            }
+        } catch (QueryException $exception) {
+            throw new CoreException(ErrorBag::make(
+                __('core::errors.Server error'),
+                '',
+                ErrorBag::paramsFromQuery('filter'),
+                Response::HTTP_INTERNAL_SERVER_ERROR)->bag
+            );
         }
 
         $collection = $this->relations($collection);

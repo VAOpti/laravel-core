@@ -3,6 +3,7 @@
 namespace VisionAura\LaravelCore\Exceptions;
 
 use Illuminate\Http\JsonResponse;
+use Illuminate\Support\Str;
 use Symfony\Component\HttpFoundation\Response;
 use VisionAura\LaravelCore\Structs\ErrorStruct;
 
@@ -74,6 +75,30 @@ class ErrorBag
         }
 
         return true;
+    }
+
+    /**
+     * Get the parameters from the URI, and format them back to a string. For the source in error messages.
+     *
+     * @param  string  $parameter  The name of the key that needs to be filtered (include, page, fields, filter, etc.)
+     *
+     * @return string|null
+     */
+    public static function paramsFromQuery(string $parameter): ?string
+    {
+        $arguments = request()->query->filter($parameter, options: ['flags' => \FILTER_REQUIRE_ARRAY]);
+
+        if (! $arguments) {
+            return null;
+        }
+
+        $string = '';
+
+        foreach (array_flatten($arguments, '][') as $key => $argument) {
+            $string .= $parameter."[{$key}]={$argument} | ";
+        }
+
+        return Str::of($string)->replaceLast(' | ', '')->value();
     }
 
     /**

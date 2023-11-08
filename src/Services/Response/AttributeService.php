@@ -14,8 +14,6 @@ class AttributeService
 
     protected array $visibleAttributes = ['*'];
 
-    protected array $hiddenAttributes = [];
-
     public function __construct()
     {
         $fields = request()->query->all('fields') ?? [];
@@ -28,8 +26,10 @@ class AttributeService
 
         $this->visibleAttributes = [];
 
-        foreach ($fields as $key => $attribute) {
-            $this->visibleAttributes[ $key ] = explode(',', $attribute);
+        foreach ($fields as $field => $attributes) {
+            foreach (explode(',', $attributes) as $attribute) {
+                $this->visibleAttributes[ $field ][] = $attribute;
+            }
         }
     }
 
