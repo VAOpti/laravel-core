@@ -33,9 +33,9 @@ class RelationService
         $this->model = $model;
 
         $includes = request()->query->getString('include');
-        $this->relations = explode(',', $includes);
+        $this->relations = array_filter(explode(',', $includes));
 
-        $this->hasRelations = ((bool) $this->relations[ 0 ]);
+        $this->hasRelations = ((bool) $this->relations);
 
         $this->validateRelations();
     }
