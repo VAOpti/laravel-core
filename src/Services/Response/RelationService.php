@@ -14,7 +14,11 @@ class RelationService
 
     public bool $hasRelations = false;
 
+    /** @var string[] $relations */
     public array $relations = [];
+
+    /** @var string[] $force */
+    public array $force = [];
 
     /** @var RelationInterface $model */
     protected RelationInterface $model;

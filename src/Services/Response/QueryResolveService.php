@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
 
 final class QueryResolveService
@@ -29,9 +30,22 @@ final class QueryResolveService
     /** @return string[] */
     public function attributes(): array
     {
+        $allAttributes = Schema::getColumnListing($this->model->getTable());
         $name = (string) Str::of(class_basename($this->model))->plural()->lower();
-        
-        return $this->attributes->get($this->model, $name);
+
+        // Check if necessary foreign keys are filtered out - force include and hide them if so.
+        foreach ($this->includes->relations as $relation) {
+            if (method_exists($this->model->$relation(), 'getForeignKeyName')
+                && ! in_array($this->model->$relation()->getForeignKeyName(), $this->attributes->getVisibleAttributes($name))
+                && in_array($this->model->$relation()->getForeignKeyName(), $allAttributes)
+            ) {
+                $foreignKey = $this->model->$relation()->getForeignKeyName();
+
+                $this->includes->force[] = $foreignKey;
+            }
+        }
+
+        return $this->attributes->get($this->model, $name, $this->includes->force);
     }
 
     public function relations(Collection|LengthAwarePaginator $collection): Collection|LengthAwarePaginator
@@ -46,11 +60,21 @@ final class QueryResolveService
     public function resolve(Builder $query): Collection|LengthAwarePaginator
     {
         if ($this->pagination->hasPagination) {
-            $collection = $query->paginate(perPage: $this->pagination->getPerPage(), page: $this->pagination->getPage());
+            $collection = $query->paginate(perPage: $this->pagination->getPerPage(),
+                page: $this->pagination->getPage());
         } else {
             $collection = $query->get();
         }
 
-        return $this->relations($collection);
+        $collection = $this->relations($collection);
+
+        // Hide attributes that were added for the purpose of loading the relationship
+        if ($this->includes->force) {
+            $collection = $collection->transform(function (Model $model) {
+                return $model->setHidden($this->includes->force);
+            });
+        }
+
+        return $collection;
     }
 }
