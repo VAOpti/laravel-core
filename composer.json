@@ -26,7 +26,8 @@
   "extra": {
     "laravel": {
       "providers": [
-        "VisionAura\\LaravelCore\\Providers\\CoreServiceProvider"
+        "VisionAura\\LaravelCore\\Providers\\CoreServiceProvider",
+        "VisionAura\\LaravelCore\\Providers\\MacroServiceProvider"
       ]
     }
   }
