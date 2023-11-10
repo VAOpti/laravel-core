@@ -16,7 +16,8 @@
   },
   "autoload": {
     "files": [
-      "src/helpers.php"
+      "src/helpers.php",
+      "src/Models/helpers.php"
     ],
     "psr-4": {
       "VisionAura\\LaravelCore\\": "src"
