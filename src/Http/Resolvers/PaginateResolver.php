@@ -1,18 +1,15 @@
 <?php
 
-namespace VisionAura\LaravelCore\Services\Response;
+namespace VisionAura\LaravelCore\Http\Resolvers;
 
-use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Arr;
-use Illuminate\Support\Collection;
 use Illuminate\Support\Str;
 use Symfony\Component\HttpFoundation\Response;
 use VisionAura\LaravelCore\Exceptions\CoreException;
 use VisionAura\LaravelCore\Exceptions\ErrorBag;
 
-class PaginateService
+class PaginateResolver
 {
     public bool $hasPagination = false;
 

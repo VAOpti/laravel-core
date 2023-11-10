@@ -13,9 +13,20 @@ trait Relations
     /** @inheritdoc */
     public function resolveRelation(string $relation): string
     {
-        assert($this instanceof Model, 'This trait should only be used on instances of Illuminate\Database\Eloquent\Model');
+        assert($this instanceof Model, 'This trait should only be used on instances of '.Model::class);
 
-        if ($this->isRelation($relation)) {
+        if (str_contains($relation, '.')) {
+            $relations = explode('.', $relation);
+            $parent = $relations[ 0 ];
+
+            if ($this->isRelation($parent)) {
+                $this->{$parent}()->getRelated()->resolveRelation(implode('.', array_splice($relations, 1)));
+            }
+        }
+
+        if ($this->isRelation($relation)
+            || (isset($parent) && $this->isRelation($parent))
+        ) {
             return $relation;
         }
 
@@ -33,12 +44,12 @@ trait Relations
                 );
             }
         }
-        
+
         ErrorBag::check($errorBag?->bag ?? []);
 
         throw new CoreException(ErrorBag::make(
             __('core::errors.Could not find the requested resource.'),
-            'A non-existing relationship was requested.',
+            "A non-existing relationship was requested: $relation",
             ErrorBag::paramsFromQuery('include'),
             Response::HTTP_BAD_REQUEST
         )->bag);

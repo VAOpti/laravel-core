@@ -1,14 +1,10 @@
 <?php
 
-namespace VisionAura\LaravelCore\Services\Response;
+namespace VisionAura\LaravelCore\Http\Resolvers;
 
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Support\Str;
-use Symfony\Component\HttpFoundation\Response;
-use VisionAura\LaravelCore\Exceptions\CoreException;
-use VisionAura\LaravelCore\Exceptions\ErrorBag;
 
-class AttributeService
+class AttributeResolver
 {
     public bool $hasHiddenAttributes = false;
 

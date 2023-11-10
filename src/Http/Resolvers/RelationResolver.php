@@ -1,14 +1,12 @@
 <?php
 
-namespace VisionAura\LaravelCore\Services\Response;
+namespace VisionAura\LaravelCore\Http\Resolvers;
 
-use Illuminate\Database\Eloquent\Model;
-use Symfony\Component\HttpFoundation\Response;
 use VisionAura\LaravelCore\Exceptions\CoreException;
 use VisionAura\LaravelCore\Interfaces\RelationInterface;
 use VisionAura\LaravelCore\Traits\HasErrorBag;
 
-class RelationService
+class RelationResolver
 {
     use HasErrorBag;
 

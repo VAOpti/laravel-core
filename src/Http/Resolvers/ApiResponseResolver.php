@@ -1,22 +1,21 @@
 <?php
 
-namespace VisionAura\LaravelCore\Services\Response;
+namespace VisionAura\LaravelCore\Http\Resolvers;
 
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Support\Str;
 use VisionAura\LaravelCore\Http\Resources\GenericCollection;
 use VisionAura\LaravelCore\Http\Resources\GenericResource;
 
-class ApiResponseService
+class ApiResponseResolver
 {
     protected Model $model;
 
-    public QueryResolveService $queryResolver;
+    public QueryResolver $queryResolver;
 
     public function __construct(Model $model)
     {
         $this->model = $model;
-        $this->queryResolver = new QueryResolveService($model);
+        $this->queryResolver = new QueryResolver($model);
     }
 
     public function collection(): GenericCollection

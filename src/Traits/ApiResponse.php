@@ -3,14 +3,14 @@
 namespace VisionAura\LaravelCore\Traits;
 
 use Illuminate\Database\Eloquent\Model;
-use VisionAura\LaravelCore\Services\Response\ApiResponseService;
+use VisionAura\LaravelCore\Http\Resolvers\ApiResponseResolver;
 
 trait ApiResponse
 {
-    private ApiResponseService $responseService;
+    private ApiResponseResolver $responseResolver;
 
-    public function apiResponse(Model $model): ApiResponseService
+    public function apiResponse(Model $model): ApiResponseResolver
     {
-        return $this->responseService ?? $this->responseService = new ApiResponseService($model);
+        return $this->responseResolver ?? $this->responseResolver = new ApiResponseResolver($model);
     }
 }
