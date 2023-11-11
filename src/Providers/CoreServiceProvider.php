@@ -2,6 +2,7 @@
 
 namespace VisionAura\LaravelCore\Providers;
 
+use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Support\Str;
@@ -14,6 +15,7 @@ class CoreServiceProvider extends ServiceProvider
     {
         $this->loadTranslationsFrom(__DIR__ . '/../lang', 'core');
 
+        /* Macro's */
         Route::macro('jsonAPI', function ($name, $controller) {
             $controllerString = $controller;
 
@@ -56,6 +58,39 @@ class CoreServiceProvider extends ServiceProvider
                     }
                 }
             }
+        });
+
+        /**
+         * @fixme: Does not work properly
+         * Takes an array, recursivly loops through it and places every array it
+         * finds on the root level, creating a one dimensional array.
+         */
+        Arr::macro('flattenSingle', function (array $arr) {
+            $result = [];
+
+            foreach ($arr as $key => $val) {
+                if (! $val) {
+                    $result[ $key ] = $val;
+
+                    continue;
+                }
+
+                foreach ($val as $subKey => $subVal) {
+                    if (is_array($subVal)) {
+                        $recursive = Arr::flattenSingle([is_int($subKey) ? $key : "$key.$subKey" => $subVal]);
+                        $result = array_merge($result, $recursive);
+                        unset($val[$subKey]);
+
+                        continue;
+                    }
+                }
+
+                if ($val) {
+                    $result[ $key ][] = $val;
+                }
+            }
+
+            return $result;
         });
     }
 }
