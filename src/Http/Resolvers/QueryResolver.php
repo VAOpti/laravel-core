@@ -66,7 +66,7 @@ final class QueryResolver
 
         }
 
-        return $this->attributes->get($this->model, $of ?? $name, Arr::get($this->includes->force,$of ?? $name, []));
+        return $this->attributes->get($this->model, $of ?? $name, Arr::get($this->includes->force, $of ?? $name, []));
     }
 
     public function relations(Collection|LengthAwarePaginator $collection): Collection|LengthAwarePaginator
@@ -106,18 +106,30 @@ final class QueryResolver
             });
         }
 
+        $collection->each(function (Model $model) {
+            $model = flattenRelations($model);
+            $stepParents = array_diff(array_keys($model->getRelations()), $this->includes->relations);
+
+            foreach ($stepParents as $stepParent) {
+                $model->unsetRelation($stepParent);
+            }
+
+            return $model;
+        });
+
         return $collection;
     }
 
     protected function resolveForeignKey(Model $from, string $relation, string $attributeKey): self
     {
         if (method_exists($from->$relation(), 'getForeignKeyName')
-            && ! in_array($from->$relation()->getForeignKeyName(), $this->attributes->getVisibleAttributes($attributeKey))
+            && ! in_array($from->$relation()->getForeignKeyName(),
+                $this->attributes->getVisibleAttributes($attributeKey))
             && in_array($from->$relation()->getForeignKeyName(), Schema::getColumnListing($this->model->getTable()))
         ) {
             $foreignKey = $from->$relation()->getForeignKeyName();
 
-            $this->includes->force[$attributeKey][] = $foreignKey;
+            $this->includes->force[ $attributeKey ][] = $foreignKey;
         }
 
         return $this;
