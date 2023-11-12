@@ -3,7 +3,7 @@
 use Illuminate\Database\Eloquent\Model;
 
 if (! function_exists('pluralizeModel')) {
-    function pluralizeModel(Model $model): string {
+    function pluralizeModel(\VisionAura\LaravelCore\Interfaces\RelationInterface|Model $model): string {
         return (string) Illuminate\Support\Str::of(class_basename($model))->plural()->lower();
     }
 }

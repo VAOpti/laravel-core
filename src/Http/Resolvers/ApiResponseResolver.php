@@ -24,7 +24,7 @@ class ApiResponseResolver
 
     public function collection(): GenericCollection
     {
-        $collectionQuery = $this->model::select($this->queryResolver->attributes());
+        $collectionQuery = $this->model::select($this->queryResolver->attributes($this->model));
         $collection = $this->queryResolver->resolve($collectionQuery);
 
         return new GenericCollection($collection);

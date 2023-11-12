@@ -92,5 +92,17 @@ class CoreServiceProvider extends ServiceProvider
 
             return $result;
         });
+
+        Arr::macro('mapRecursive', function (array $arr, callable $callback) {
+            $ritit = new \RecursiveIteratorIterator(new \RecursiveArrayIterator($arr));
+            foreach ($ritit as $leaf) {
+                foreach (range(0, $ritit->getDepth()) as $depth) {
+                    $key = $ritit->getSubIterator($depth)->key();
+                    $value = $ritit->getSubIterator($depth)->current();
+
+                    call_user_func_array($callback, [$key, $value]);
+                }
+            }
+        });
     }
 }

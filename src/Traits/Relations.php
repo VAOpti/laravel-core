@@ -3,6 +3,10 @@
 namespace VisionAura\LaravelCore\Traits;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Database\Eloquent\Relations\HasOneOrMany;
+use Illuminate\Database\Eloquent\Relations\Relation;
 use Illuminate\Support\Str;
 use Symfony\Component\HttpFoundation\Response;
 use VisionAura\LaravelCore\Exceptions\CoreException;
@@ -53,5 +57,38 @@ trait Relations
             ErrorBag::paramsFromQuery('include'),
             Response::HTTP_BAD_REQUEST
         )->bag);
+    }
+
+    /** @inheritdoc */
+    public function resolveDependentKeys(string $relation): array|string|null
+    {
+        if (! method_exists($this, $relation) && ! method_exists($this->$relation(), 'getForeignKeyName')) {
+            return null;
+        }
+
+        $foreignKey = $this->$relation()->getForeignKeyName();
+
+        if (method_exists($this->$relation(), 'getMorphType')) {
+            return [$this->$relation()->getMorphType(), $foreignKey];
+        }
+
+        return $this->$relation()->getForeignKeyName();
+    }
+
+    /** @inheritdoc */
+    public function getForeignKeyOwner(string $relation): ?Model
+    {
+        if (! method_exists($this, $relation)) {
+            return null;
+        }
+
+        /** @var Relation $relation */
+        $relation = $this->{$relation}();
+
+        return match (true) {
+            ($relation instanceof HasOneOrMany) => $relation->getRelated(),
+            ($relation instanceof BelongsTo),
+            ($relation instanceof BelongsToMany) => $this,
+        };
     }
 }
