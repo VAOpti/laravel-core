@@ -3,6 +3,7 @@
 namespace VisionAura\LaravelCore\Http\Resolvers;
 
 use Illuminate\Database\Eloquent\Model;
+use VisionAura\LaravelCore\Exceptions\CoreException;
 use VisionAura\LaravelCore\Http\Resources\GenericCollection;
 use VisionAura\LaravelCore\Http\Resources\GenericResource;
 
@@ -12,6 +13,9 @@ class ApiResponseResolver
 
     public QueryResolver $queryResolver;
 
+    /**
+     * @throws CoreException
+     */
     public function __construct(Model $model)
     {
         $this->model = $model;

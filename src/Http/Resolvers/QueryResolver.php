@@ -9,21 +9,27 @@ use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Schema;
-use Illuminate\Support\Str;
+use RecursiveArrayIterator;
+use RecursiveIteratorIterator;
 use Symfony\Component\HttpFoundation\Response;
 use VisionAura\LaravelCore\Exceptions\CoreException;
 use VisionAura\LaravelCore\Exceptions\ErrorBag;
 
 final class QueryResolver
 {
+    protected Collection|LengthAwarePaginator $resolved;
+
     protected Model $model;
 
-    public AttributeResolver $attributes;
+    protected AttributeResolver $attributes;
 
-    public RelationResolver $includes;
+    protected RelationResolver $includes;
 
-    public PaginateResolver $pagination;
+    protected PaginateResolver $pagination;
 
+    /**
+     * @throws CoreException
+     */
     public function __construct(Model $model)
     {
         $this->model = $model;
@@ -36,7 +42,7 @@ final class QueryResolver
     }
 
     /** @return string[] */
-    public function attributes(): array
+    public function attributes(?string $of = null): array
     {
         $name = pluralizeModel($this->model);
 
@@ -51,7 +57,7 @@ final class QueryResolver
             // The include has a child specified.
             $parentModel = $this->model;
 
-            $ritit = new \RecursiveIteratorIterator(new \RecursiveArrayIterator([$parent => $relation]));
+            $ritit = new RecursiveIteratorIterator(new RecursiveArrayIterator([$parent => $relation]));
             foreach ($ritit as $leaf) {
                 foreach (range(0, $ritit->getDepth()) as $depth) {
                     $parent = $ritit->getSubIterator($depth)->key();
@@ -69,25 +75,87 @@ final class QueryResolver
         return $this->attributes->get($this->model, $of ?? $name, Arr::get($this->includes->force, $of ?? $name, []));
     }
 
-    public function relations(Collection|LengthAwarePaginator $collection): Collection|LengthAwarePaginator
+    public function resolveRelations(): self
     {
         if (! $this->includes->hasRelations) {
-            return $collection;
+            return $this;
         }
 
-        return $collection->load($this->includes->relations);
+        $this->resolved->each(function (Model $model) {
+            $model = flattenRelations($model);
+
+            $hiddenAttrs = array_intersect(array_keys($model->getRelations()), array_keys($this->includes->force));
+            foreach ($hiddenAttrs as $hiddenAttr) {
+                /** @var Collection $relationCollection */
+                $relationCollection = $model->getRelation($hiddenAttr);
+                $relationCollection->each(function (Model $model) use ($hiddenAttr){
+                    return $model->setHidden(Arr::get($this->includes->force, $hiddenAttr));
+                });
+            }
+
+            $stepParents = array_diff(array_keys($model->getRelations()), $this->includes->relations);
+            foreach ($stepParents as $stepParent) {
+                $model->unsetRelation($stepParent);
+            }
+
+            return $model;
+        });
+
+        return $this;
     }
 
+    /**
+     * @throws CoreException
+     */
     public function resolve(Builder $query): Collection|LengthAwarePaginator
     {
+        $this->resolveQuery($query)->resolveRelations();
+
+        // Hide attributes that were added for the purpose of loading the relationship
+        $name = pluralizeModel($this->model);
+        if (Arr::has($this->includes->force, $name)) {
+            $this->resolved->transform(function (Model $model) use ($name) {
+                return $model->setHidden(Arr::get($this->includes->force, $name));
+            });
+        }
+
+        return $this->resolved;
+    }
+
+
+    /**
+     * @throws CoreException
+     */
+    protected function resolveQuery(Builder $query): self
+    {
+        $with = [];
+        foreach ($this->includes->relations as $include) {
+            if (str_contains($include, '.')) { // skip for now
+                continue;
+            }
+
+            $this->resolveForeignKey($this->model, $include);
+
+            $includeAttr = $this->attributes->get($this->model, $include, Arr::get($this->includes->force, $include));
+            if ($includeAttr[ 0 ] === '*') {
+                $with[] = $include;
+
+                continue;
+            }
+
+            $with[] = "$include:".implode(',', $includeAttr);
+        }
+
+        $query->with($with);
+
         try {
             if ($this->pagination->hasPagination) {
-                $collection = $query->paginate(perPage: $this->pagination->getPerPage(),
+                $this->resolved = $query->paginate(perPage: $this->pagination->getPerPage(),
                     page: $this->pagination->getPage());
             } else {
-                $collection = $query->get();
+                $this->resolved = $query->get();
             }
-        } catch (QueryException $exception) {
+        } catch (QueryException) {
             throw new CoreException(ErrorBag::make(
                 __('core::errors.Server error'),
                 'An unknown field was requested.',
@@ -96,37 +164,33 @@ final class QueryResolver
             );
         }
 
-        $collection = $this->relations($collection);
-
-        // Hide attributes that were added for the purpose of loading the relationship
-        $name = pluralizeModel($this->model);
-        if (Arr::has($this->includes->force, $name)) {
-            $collection = $collection->transform(function (Model $model) use ($name) {
-                return $model->setHidden(Arr::get($this->includes->force, $name));
-            });
-        }
-
-        $collection->each(function (Model $model) {
-            $model = flattenRelations($model);
-            $stepParents = array_diff(array_keys($model->getRelations()), $this->includes->relations);
-
-            foreach ($stepParents as $stepParent) {
-                $model->unsetRelation($stepParent);
-            }
-
-            return $model;
-        });
-
-        return $collection;
+        return $this;
     }
 
-    protected function resolveForeignKey(Model $from, string $relation, string $attributeKey): self
+    /**
+     * @param  Model        $from          The model to base the relation from
+     * @param  string       $relation      The name of the relation
+     * @param  string|null  $attributeKey  The name of the key this should be forced on to.
+     *
+     * @return self
+     */
+    protected function resolveForeignKey(Model $from, string $relation, ?string $attributeKey = null): self
     {
+        if (! $attributeKey) {
+            $attributeKey = $relation;
+        }
+
         if (method_exists($from->$relation(), 'getForeignKeyName')
-            && ! in_array($from->$relation()->getForeignKeyName(),
-                $this->attributes->getVisibleAttributes($attributeKey))
-            && in_array($from->$relation()->getForeignKeyName(), Schema::getColumnListing($this->model->getTable()))
+            && ! in_array($from->$relation()->getForeignKeyName(), $this->attributes->getVisibleAttributes($attributeKey))
         ) {
+            // If the relation is not the same as the attribute key, it's assumed the foreign key is on the parent,
+            // in which case it should be checked if it does indeed.
+            if ($relation !== $attributeKey
+                && ! in_array($from->$relation()->getForeignKeyName(), Schema::getColumnListing($this->model->getTable()))
+            ) {
+                return $this;
+            }
+
             $foreignKey = $from->$relation()->getForeignKeyName();
 
             $this->includes->force[ $attributeKey ][] = $foreignKey;
