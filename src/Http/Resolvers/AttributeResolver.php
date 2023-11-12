@@ -70,18 +70,22 @@ class AttributeResolver
     }
 
     /**
-     * @param  string        $name
-     * @param  array|string  $attributes
+     * @param  string           $name
+     * @param  string[]|string  $attributes
      *
-     * @return array|string
+     * @return self
      */
-    public function setForced(string $name, array|string $attributes): array|string
+    public function setForced(string $name, array|string $attributes): self
     {
+        $visible = $this->getVisibleAttributes($name);
+
         foreach (Arr::wrap($attributes) as $attribute) {
-            $this->force[ $name ][] = $attribute;
+            if (! in_array($attribute, $visible)) {
+                $this->force[ $name ][] = $attribute;
+            }
         }
 
-        return $this->force[ $name ];
+        return $this;
     }
 
     /**

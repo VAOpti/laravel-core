@@ -91,6 +91,11 @@ final class QueryResolver
                 $model->unsetRelation($stepParent);
             }
 
+            $missingRelations = array_diff($this->includes->relations, array_keys($model->getRelations()));
+            foreach ($missingRelations as $missingRelation) {
+                $model->setRelation($missingRelation, []);
+            }
+
             return $model;
         });
 
