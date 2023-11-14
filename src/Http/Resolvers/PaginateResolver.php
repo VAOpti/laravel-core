@@ -14,8 +14,11 @@ class PaginateResolver
     public bool $hasPagination = false;
 
     /** @var array{offset:int, limit:int} $params */
-    public array $params = ['offset' => 0, 'limit' => 15];
+    protected array $params = ['offset' => 0, 'limit' => 15];
 
+    /**
+     * @throws CoreException
+     */
     public function __construct(Model $model)
     {
         $pagination = request()->query->all('page');

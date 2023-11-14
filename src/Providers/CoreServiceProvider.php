@@ -100,7 +100,7 @@ class CoreServiceProvider extends ServiceProvider
                     $key = $ritit->getSubIterator($depth)->key();
                     $value = $ritit->getSubIterator($depth)->current();
 
-                    call_user_func_array($callback, [$key, $value]);
+                    call_user_func_array($callback, [$key, $value, $depth]);
                 }
             }
         });
