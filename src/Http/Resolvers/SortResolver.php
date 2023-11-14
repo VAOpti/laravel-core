@@ -77,7 +77,7 @@ class SortResolver
 
                 /** @var ParentChildRelationStruct $dependentKeys */
                 $dependentKeys = $parentModel->resolveQualifiedDependentKeys($child);
-                $query->join($child, $dependentKeys->owner, $dependentKeys->foreign);
+                $query->leftJoin($child, $dependentKeys->owner, $dependentKeys->foreign);
 
                 $parentModel = $parentModel->{$child}()->getRelated();
             });
