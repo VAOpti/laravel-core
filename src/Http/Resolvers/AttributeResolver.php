@@ -57,10 +57,13 @@ class AttributeResolver
     public function get(RelationInterface|Model $model, string $name): array
     {
         if (! $this->hasHiddenAttributes || ! array_key_exists($name, $this->visibleAttributes)) {
-            return ['*'];
+            return ["$name.*"];
         }
 
-        return array_merge($this->visibleAttributes[ $name ], [$model->getKeyName()], $this->getForced($name));
+        $attributes = array_merge($this->visibleAttributes[ $name ], [$model->getKeyName()], $this->getForced($name));
+
+        // Prefix every value with the name of the table.
+        return preg_filter('/^/', "$name.", $attributes);
     }
 
     /** @return array{}|array<string[]> */

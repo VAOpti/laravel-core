@@ -11,6 +11,7 @@ use Illuminate\Support\Str;
 use Symfony\Component\HttpFoundation\Response;
 use VisionAura\LaravelCore\Exceptions\CoreException;
 use VisionAura\LaravelCore\Exceptions\ErrorBag;
+use VisionAura\LaravelCore\Structs\ParentChildRelationStruct;
 
 trait Relations
 {
@@ -72,7 +73,25 @@ trait Relations
             return [$this->$relation()->getMorphType(), $foreignKey];
         }
 
+        if (method_exists($this->$relation(), 'getOwnerKeyName')) {
+            return $this->$relation()->getOwnerKeyName();
+        }
+
         return $this->$relation()->getForeignKeyName();
+    }
+
+    public function resolveQualifiedDependentKeys(string $relation): ParentChildRelationStruct|null
+    {
+        if (! method_exists($this, $relation) && ! method_exists($this->$relation(), 'getQualifiedForeignKeyName')) {
+            return null;
+        }
+
+        if (method_exists($this->$relation(), 'getQualifiedOwnerKeyName')) {
+            return new ParentChildRelationStruct($this->$relation()->getQualifiedForeignKeyName(), $this->$relation()->getQualifiedOwnerKeyName());
+        }
+        if (method_exists($this->$relation(), 'getQualifiedParentKeyName')) {
+            return new ParentChildRelationStruct($this->$relation()->getQualifiedParentKeyName(), $this->$relation()->getQualifiedForeignKeyName());
+        }
     }
 
     /** @inheritdoc */

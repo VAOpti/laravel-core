@@ -25,6 +25,8 @@ final class QueryResolver
 
     protected PaginateResolver $pagination;
 
+    protected SortResolver $sort;
+
     /**
      * @throws CoreException
      */
@@ -37,6 +39,7 @@ final class QueryResolver
         $this->includes = new RelationResolver($model);
         $this->pagination = new PaginateResolver($model);
         $this->attributes = new AttributeResolver();
+        $this->sort = new SortResolver($model);
 
         $name = pluralizeModel($this->model);
 
@@ -120,7 +123,6 @@ final class QueryResolver
         return $this->resolved;
     }
 
-
     /**
      * @throws CoreException
      */
@@ -137,6 +139,8 @@ final class QueryResolver
 
             $with[] = "$include:".implode(',', $includeAttr);
         }
+
+        $query = $this->sort->bind($query);
 
         $query->with($with);
 
