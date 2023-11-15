@@ -38,6 +38,7 @@ if (! function_exists('flattenRelations')) {
                     });
 
                     $model->setRelation("{$name}.{$subName}", $subRelations);
+                    $relation->unsetRelation($subName);
                 }
             }
         }

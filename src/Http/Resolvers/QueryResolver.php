@@ -55,7 +55,7 @@ final class QueryResolver
             $parentModel = $this->model;
             Arr::mapRecursive([$parent => $relation], function ($parent, $child) use (&$parentModel) {
                 if (is_array($child)) {
-                    $child = Arr::first($child);
+                    $child = Arr::first(array_keys($child));
                 }
 
                 $this->checkDependency($parentModel, $parent, $child, "$parent.$child");
@@ -68,7 +68,7 @@ final class QueryResolver
     /** @return string[] */
     public function attributes(?Model $model = null, ?string $of = null): array
     {
-        return $this->attributes->get($model ?? $this->model, $of ?? pluralizeModel($this->model));
+        return $this->attributes->getQualified($model ?? $this->model, $of ?? pluralizeModel($this->model));
     }
 
     public function resolveRelations(): self
@@ -130,14 +130,14 @@ final class QueryResolver
     {
         $with = [];
         foreach ($this->includes->relations as $include) {
-            $includeAttr = $this->attributes->get($this->model, $include);
-            if ($includeAttr[ 0 ] === '*') {
+            $includeAttrs = $this->attributes->get($this->model, $include);
+            if ($includeAttrs[ 0 ] === "$include.*") {
                 $with[] = $include;
 
                 continue;
             }
 
-            $with[] = "$include:".implode(',', $includeAttr);
+            $with[] = "$include:".implode(',', $includeAttrs);
         }
 
         $query = $this->sort->bind($query);
@@ -146,9 +146,9 @@ final class QueryResolver
 
         try {
             if ($this->pagination->hasPagination) {
-                $this->resolved = $query->paginate(perPage: $this->pagination->getPerPage(), page: $this->pagination->getPage());
+                $this->resolved = $query->paginate(perPage: $this->pagination->getPerPage(), page: $this->pagination->getPage())->unique();
             } else {
-                $this->resolved = $query->get();
+                $this->resolved = $query->get()->unique();
             }
         } catch (QueryException) {
             throw new CoreException(ErrorBag::make(

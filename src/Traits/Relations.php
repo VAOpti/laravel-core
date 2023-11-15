@@ -89,9 +89,13 @@ trait Relations
         if (method_exists($this->$relation(), 'getQualifiedOwnerKeyName')) {
             return new ParentChildRelationStruct($this->$relation()->getQualifiedForeignKeyName(), $this->$relation()->getQualifiedOwnerKeyName());
         }
+
         if (method_exists($this->$relation(), 'getQualifiedParentKeyName')) {
             return new ParentChildRelationStruct($this->$relation()->getQualifiedParentKeyName(), $this->$relation()->getQualifiedForeignKeyName());
         }
+
+        // TODO: The morph type?
+        return null;
     }
 
     /** @inheritdoc */

@@ -56,11 +56,18 @@ class AttributeResolver
      */
     public function get(RelationInterface|Model $model, string $name): array
     {
-        if (! $this->hasHiddenAttributes || ! array_key_exists($name, $this->visibleAttributes)) {
-            return ["$name.*"];
-        }
+        return $this->resolve($model, $name);
+    }
 
-        $attributes = array_merge($this->visibleAttributes[ $name ], [$model->getKeyName()], $this->getForced($name));
+    /**
+     * @param  RelationInterface|Model  $model  The model to get the attributes from
+     * @param  string                   $name   The name of the primary resource or the relation.
+     *
+     * @return string[] The attributes that should be visible prefixed with the name. Always includes the primary key. Defaults to ['*']
+     */
+    public function getQualified(RelationInterface|Model $model, string $name): array
+    {
+        $attributes = $this->resolve($model, $name);
 
         // Prefix every value with the name of the table.
         return preg_filter('/^/', "$name.", $attributes);
@@ -118,5 +125,15 @@ class AttributeResolver
 
         // If the owner is not the child, it is assumed it is the parent.
         $this->setForced($nestedKey ?? $parentKey, $attribute);
+    }
+
+    /** Retrieve the (forced) attributes of the given name. Always includes the primary key */
+    protected function resolve(RelationInterface|Model $model, string $name): array
+    {
+        if (! $this->hasHiddenAttributes || ! array_key_exists($name, $this->visibleAttributes)) {
+            return ["$name.*"];
+        }
+
+        return array_merge($this->visibleAttributes[ $name ], [$model->getKeyName()], $this->getForced($name));
     }
 }
