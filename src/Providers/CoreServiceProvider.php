@@ -62,7 +62,7 @@ class CoreServiceProvider extends ServiceProvider
 
         /**
          * @fixme: Does not work properly
-         * Takes an array, recursivly loops through it and places every array it
+         * Takes an array, recursively loops through it and places every array it
          * finds on the root level, creating a one dimensional array.
          */
         Arr::macro('flattenSingle', function (array $arr) {

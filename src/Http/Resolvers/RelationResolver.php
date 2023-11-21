@@ -4,12 +4,9 @@ namespace VisionAura\LaravelCore\Http\Resolvers;
 
 use VisionAura\LaravelCore\Exceptions\CoreException;
 use VisionAura\LaravelCore\Interfaces\RelationInterface;
-use VisionAura\LaravelCore\Traits\HasErrorBag;
 
 class RelationResolver
 {
-    use HasErrorBag;
-
     public bool $hasRelations = false;
 
     /** @var string[] $relations */

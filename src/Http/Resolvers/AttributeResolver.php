@@ -4,6 +4,7 @@ namespace VisionAura\LaravelCore\Http\Resolvers;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Arr;
+use Illuminate\Support\Facades\Schema;
 use VisionAura\LaravelCore\Interfaces\RelationInterface;
 
 class AttributeResolver
@@ -49,23 +50,36 @@ class AttributeResolver
     }
 
     /**
-     * @param  RelationInterface|Model  $model  The model to get the attributes from
+     * @param  RelationInterface&Model  $model  The model to get the attributes from
      * @param  string                   $name   The name of the primary resource or the relation.
      *
      * @return string[] The attributes that should be visible. Always includes the primary key. Defaults to ['*']
      */
-    public function get(RelationInterface|Model $model, string $name): array
+    public function get(RelationInterface&Model $model, string $name): array
     {
         return $this->resolve($model, $name);
     }
 
     /**
-     * @param  RelationInterface|Model  $model  The model to get the attributes from
+     * Queries the database to retrieve a list of columns and verifies the attribute is listed.
+     *
+     * @param  Model&RelationInterface  $model      The model to verify the attributes on.
+     * @param  string                   $attribute  The attribute to filter for.
+     *
+     * @return bool
+     */
+    public static function verify(RelationInterface&Model $model, string $attribute): bool
+    {
+        return in_array($attribute, Schema::getColumnListing($model->getTable()));
+    }
+
+    /**
+     * @param  RelationInterface&Model  $model  The model to get the attributes from
      * @param  string                   $name   The name of the primary resource or the relation.
      *
      * @return string[] The attributes that should be visible prefixed with the name. Always includes the primary key. Defaults to ['*']
      */
-    public function getQualified(RelationInterface|Model $model, string $name): array
+    public function getQualified(RelationInterface&Model $model, string $name): array
     {
         $attributes = $this->resolve($model, $name);
 
@@ -128,7 +142,7 @@ class AttributeResolver
     }
 
     /** Retrieve the (forced) attributes of the given name. Always includes the primary key */
-    protected function resolve(RelationInterface|Model $model, string $name): array
+    protected function resolve(RelationInterface&Model $model, string $name): array
     {
         if (! $this->hasHiddenAttributes || ! array_key_exists($name, $this->visibleAttributes)) {
             return ["$name.*"];

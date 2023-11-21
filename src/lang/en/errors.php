@@ -5,4 +5,5 @@ return [
     'Server error' => 'Server error',
     'Could not find the requested resource.' => 'Could not find the requested resource.',
     'Pagination failed' => 'Pagination failed',
+    'Invalid filter operator' => 'Invalid filter operator',
 ];

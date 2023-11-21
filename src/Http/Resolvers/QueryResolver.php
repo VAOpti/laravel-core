@@ -17,7 +17,7 @@ final class QueryResolver
 {
     protected Collection|LengthAwarePaginator $resolved;
 
-    protected RelationInterface $model;
+    protected RelationInterface&Model $model;
 
     protected AttributeResolver $attributes;
 
@@ -27,10 +27,12 @@ final class QueryResolver
 
     protected SortResolver $sort;
 
+    protected FilterResolver $filter;
+
     /**
      * @throws CoreException
      */
-    public function __construct(RelationInterface $model)
+    public function __construct(RelationInterface&Model $model)
     {
         $this->model = $model;
 
@@ -40,6 +42,7 @@ final class QueryResolver
         $this->pagination = new PaginateResolver($model);
         $this->attributes = new AttributeResolver();
         $this->sort = new SortResolver($model);
+        $this->filter = new FilterResolver($model);
 
         $name = pluralizeModel($this->model);
 

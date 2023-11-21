@@ -18,6 +18,24 @@ interface RelationInterface
     public function resolveRelation(string $relation): string;
 
     /**
+     * Takes the name of a relation which can be a dot notation.
+     *
+     * @param  string  $relation
+     *
+     * @return bool
+     */
+    public function verifyRelation(string $relation): bool;
+
+    /**
+     * Verifies the relation and returns the related Model if the relation exists. Supports dot notation for nested relationships.
+     *
+     * @param  string  $relation
+     *
+     * @return Model|null
+     */
+    public function getRelated(string $relation): ?Model;
+
+    /**
      * Determine whether the foreign key exists on the parent of the child model.
      *
      * @param  string  $relation

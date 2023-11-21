@@ -46,3 +46,19 @@ if (! function_exists('array_extrude')) {
         return $result;
     }
 }
+
+if (! function_exists('split_on_last')) {
+    /**
+     * @param  string  $str The string to split.
+     * @param  string  $splitter The string to split on.
+     *
+     * @return string[] An array with the first and last substring
+     */
+    function split_on_last(string $str, string $splitter = '.'): array
+    {
+        $last = substr($str, strrpos($str, $splitter) + strlen($splitter));
+        $first = substr($str, 0, strrpos($str, ".{$last}"));
+
+        return [$first, $last];
+    }
+}

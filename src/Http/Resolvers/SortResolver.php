@@ -27,7 +27,7 @@ class SortResolver
                 $direction = 'desc';
             }
 
-            $this->sorts[$sort] = $direction;
+            $this->sorts[ $sort ] = $direction;
         }
 
         $this->hasSorts = (bool) $this->sorts;
@@ -46,7 +46,6 @@ class SortResolver
         return $this->hasSorts;
     }
 
-    // TODO: Test with relations deeper than 1.
     public function bind(Builder $query): Builder
     {
         if (! $this->hasSorts) {
@@ -61,14 +60,14 @@ class SortResolver
             }
 
             $parts = explode('.', $sort);
-            $sortColumn = array_splice($parts, 1)[0];
-            $sortColumn = last($parts) . '.' . $sortColumn;
+            $sortColumn = last(array_splice($parts, -1));
+            $sortColumn = last($parts).'.'.$sortColumn;
 
             $parentModel = $this->model;
             $relation = strtolower(class_basename($this->model)).'.'.implode('.', $parts);
             Arr::mapRecursive(array_extrude(Arr::wrap($relation)), function ($parent, $child) use (&$query, &$parentModel) {
                 if (is_array($child)) {
-                    $child = Arr::first($child);
+                    $child = Arr::first(array_keys($child));
                 }
 
                 if (! $parentModel->resolveRelation($child)) {

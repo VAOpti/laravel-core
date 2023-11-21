@@ -7,18 +7,20 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasOneOrMany;
 use Illuminate\Database\Eloquent\Relations\Relation;
+use Illuminate\Support\Arr;
 use Illuminate\Support\Str;
 use Symfony\Component\HttpFoundation\Response;
 use VisionAura\LaravelCore\Exceptions\CoreException;
 use VisionAura\LaravelCore\Exceptions\ErrorBag;
+use VisionAura\LaravelCore\Interfaces\RelationInterface;
 use VisionAura\LaravelCore\Structs\ParentChildRelationStruct;
 
 trait Relations
 {
     /** @inheritdoc */
-    public function resolveRelation(string $relation): string
+    public function resolveRelation(string $relation): string // TODO: Rename to verifyRelation & remove throwing errors; instead return null.
     {
-        assert($this instanceof Model, 'This trait should only be used on instances of '.Model::class);
+        assert($this instanceof RelationInterface, 'The trait'.__TRAIT__.' should only be used on instances of '.RelationInterface::class);
 
         if (str_contains($relation, '.')) {
             $relations = explode('.', $relation);
@@ -29,9 +31,7 @@ trait Relations
             }
         }
 
-        if ($this->isRelation($relation)
-            || (isset($parent) && $this->isRelation($parent))
-        ) {
+        if ($this->isRelation($relation) || (isset($parent) && $this->isRelation($parent))) {
             return $relation;
         }
 
@@ -58,6 +58,51 @@ trait Relations
             ErrorBag::paramsFromQuery('include'),
             Response::HTTP_BAD_REQUEST
         )->bag);
+    }
+
+    /** @inheritdoc */
+    public function verifyRelation(string $relation): bool
+    {
+        assert($this instanceof RelationInterface, 'The trait'.__TRAIT__.' should only be used on instances of '.RelationInterface::class);
+
+        if (str_contains($relation, '.')) {
+            $relations = explode('.', $relation);
+            $parent = $relations[ 0 ];
+
+            if ($this->isRelation($parent)) {
+                $verifyRelated = $this->{$parent}()->getRelated()->verifyRelation(implode('.', array_splice($relations, 1)));
+                if (! $verifyRelated) {
+                    return false;
+                }
+            }
+        }
+
+        return $this->isRelation($relation) || (isset($parent) && $this->isRelation($parent));
+    }
+
+    /** @inheritdoc */
+    public function getRelated(string $relation): ?Model
+    {
+        if (! $this->verifyRelation($relation)) {
+            return null;
+        }
+
+        if (! str_contains($relation, '.')) {
+            return $this->{$relation}()->getRelated();
+        }
+
+        $currentModel = $this;
+        Arr::mapRecursive(array_extrude(Arr::wrap($relation)), function ($parent, $child) use (&$currentModel) {
+            if (is_array($child)) {
+                $child = Arr::first(array_keys($child));
+            }
+
+            if ($currentModel->isRelation($child)) {
+                $currentModel = $currentModel->{$child}()->getRelated();
+            }
+        });
+
+        return $currentModel;
     }
 
     /** @inheritdoc */
