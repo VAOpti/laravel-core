@@ -18,7 +18,7 @@ use VisionAura\LaravelCore\Structs\ParentChildRelationStruct;
 trait Relations
 {
     /** @inheritdoc */
-    public function resolveRelation(string $relation): string // TODO: Rename to verifyRelation & remove throwing errors; instead return null.
+    public function resolveRelation(string $relation): string
     {
         assert($this instanceof RelationInterface, 'The trait'.__TRAIT__.' should only be used on instances of '.RelationInterface::class);
 

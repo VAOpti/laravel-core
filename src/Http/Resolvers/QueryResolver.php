@@ -4,6 +4,7 @@ namespace VisionAura\LaravelCore\Http\Resolvers;
 
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\Relation;
 use Illuminate\Database\QueryException;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Arr;
@@ -74,6 +75,24 @@ final class QueryResolver
         return $this->attributes->getQualified($model ?? $this->model, $of ?? pluralizeModel($this->model));
     }
 
+    /**
+     * @throws CoreException
+     */
+    public function resolve(Builder $query): Collection|LengthAwarePaginator
+    {
+        $this->resolveQuery($query)->resolveRelations();
+
+        // Hide attributes that were added for the purpose of loading the relationship
+        $name = pluralizeModel($this->model);
+        if ($this->attributes->getForced($name)) {
+            $this->resolved->transform(function (Model $model) use ($name) {
+                return $model->setHidden($this->attributes->getForced($name));
+            });
+        }
+
+        return $this->resolved;
+    }
+
     public function resolveRelations(): self
     {
         if (! $this->includes->hasRelations) {
@@ -111,39 +130,35 @@ final class QueryResolver
     /**
      * @throws CoreException
      */
-    public function resolve(Builder $query): Collection|LengthAwarePaginator
-    {
-        $this->resolveQuery($query)->resolveRelations();
-
-        // Hide attributes that were added for the purpose of loading the relationship
-        $name = pluralizeModel($this->model);
-        if ($this->attributes->getForced($name)) {
-            $this->resolved->transform(function (Model $model) use ($name) {
-                return $model->setHidden($this->attributes->getForced($name));
-            });
-        }
-
-        return $this->resolved;
-    }
-
-    /**
-     * @throws CoreException
-     */
     protected function resolveQuery(Builder $query): self
     {
+        $query = $this->filter->bind($query, $this->filter->get());
+        $query = $this->sort->bind($query);
+
         $with = [];
         foreach ($this->includes->relations as $include) {
-            $includeAttrs = $this->attributes->get($this->model, $include);
-            if ($includeAttrs[ 0 ] === "$include.*") {
-                $with[] = $include;
+            $callback = function (Relation $query) use ($include) {
+                $selectedAttrs = function ($include): string {
+                    $includeAttrs = $this->attributes->get($this->model, $include);
 
-                continue;
-            }
+                    if (count($includeAttrs) === 1 && $includeAttrs[ 0 ] === $include) {
+                        return "$include.*";
+                    }
 
-            $with[] = "$include:".implode(',', $includeAttrs);
+                    // Make sure we take the relevant table in a nested relation
+                    [$precedingPath, $relevantRelation] = split_on_last($include);
+                    $selectedAttrs = Arr::map($includeAttrs, function (string $attribute) use ($relevantRelation) {
+                        return "{$relevantRelation}.{$attribute}";
+                    });
+
+                    return implode(",", $selectedAttrs);
+                };
+
+                return $query->selectRaw($selectedAttrs($include));
+            };
+
+            $with[ $include ] = $callback;
         }
-
-        $query = $this->sort->bind($query);
 
         $query->with($with);
 

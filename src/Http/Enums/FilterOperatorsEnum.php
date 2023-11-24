@@ -4,6 +4,7 @@ namespace VisionAura\LaravelCore\Http\Enums;
 
 enum FilterOperatorsEnum: string
 {
+    // TODO: Create a not equals solution in HTTP syntax
     case EQUALS = 'equals';
     case LT = 'lt';
     case GT = 'gt';

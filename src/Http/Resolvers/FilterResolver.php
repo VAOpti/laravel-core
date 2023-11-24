@@ -2,8 +2,10 @@
 
 namespace VisionAura\LaravelCore\Http\Resolvers;
 
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Arr;
+use Nette\NotImplementedException;
 use Symfony\Component\HttpFoundation\Response;
 use VisionAura\LaravelCore\Casts\CastPrimitives;
 use VisionAura\LaravelCore\Exceptions\CoreException;
@@ -11,18 +13,20 @@ use VisionAura\LaravelCore\Exceptions\ErrorBag;
 use VisionAura\LaravelCore\Exceptions\InvalidRelationException;
 use VisionAura\LaravelCore\Http\Enums\FilterOperatorsEnum;
 use VisionAura\LaravelCore\Interfaces\RelationInterface;
+use VisionAura\LaravelCore\Structs\FilterClauseStruct;
 
 class FilterResolver
 {
     protected Model&RelationInterface $model;
 
-    /** @var array{}|array<array{int, relation:string|null, attribute:string, operator:FilterOperatorsEnum, value: mixed}> */
-    protected array $query = [];
+    /** @var FilterClauseStruct[] */
+    protected array $clauses = [];
 
     protected bool $hasFilter = false;
 
     public function __construct(Model&RelationInterface $model)
     {
+        // TODO: Make it possible to have the value be an array, so the filter can deduct it's a WHEREIN clause
         $this->model = $model;
 
         $filters = request()->all('filter');
@@ -30,6 +34,8 @@ class FilterResolver
         if (! Arr::get($filters, 'filter')) {
             return;
         }
+
+        $this->hasFilter = true;
 
         $filters = Arr::get($filters, 'filter');
 
@@ -60,14 +66,78 @@ class FilterResolver
 
     public function add(string|FilterOperatorsEnum $operator, mixed $value, ?string $attribute = null, ?string $relation = null): self
     {
-        $this->query[] = [
-            'relation'  => $relation,
-            'attribute' => $attribute,
-            'operator'  => $operator,
-            'value'     => $value,
-        ];
+        $this->clauses[] = new FilterClauseStruct($relation, $attribute, $operator, $value);
 
         return $this;
+    }
+
+    /** @return array{}|FilterClauseStruct[] */
+    public function get(): array
+    {
+        return $this->clauses;
+    }
+
+    /**
+     * @deprecated Only get() seems necessary. All filters are done on the main resource level, not relation level.
+     *
+     * @return array{}|FilterClauseStruct[]
+     */
+    public function getMain(): array
+    {
+        return Arr::where($this->clauses, function (FilterClauseStruct $args) {
+            return ($args->relation === null) || ($args->attribute === null && $args->relation !== null);
+        });
+    }
+
+    /**
+     * @deprecated Only get() seems necessary. All filters are done on the main resource level, not relation level.
+     *
+     * @return array{}|FilterClauseStruct[]
+     */
+    public function getRelations(?string $relation = null): array
+    {
+        return Arr::where($this->clauses, function (FilterClauseStruct $args) use ($relation) {
+            return $relation
+                ? ($args->relation === $relation && $args->attribute !== null)
+                : ($args->relation !== null && $args->attribute !== null);
+        });
+    }
+
+    /** @param  array{}|FilterClauseStruct[]  $clauses */
+    public function bind(Builder $query, array $clauses): Builder
+    {
+        // TODO: Find a way to specify ORs in the query.
+        foreach ($clauses as $clause) {
+            if ($clause->relation !== null && $clause->attribute === null) {
+                $where = $clause->value ? 'whereHas' : 'doesntHave';
+                $query->{$where}($clause->relation);
+
+                continue;
+            }
+
+            if (is_string($clause->operator)) {
+                // Operator is a scope function
+                if ($clause->relation) {
+                    throw new NotImplementedException('Can\'t use scope functions on relations yet.', Response::HTTP_NOT_IMPLEMENTED);
+                }
+
+                $query->{$clause->operator}();
+
+                continue;
+            }
+
+            if (! $clause->relation) {
+                $query->where($clause->attribute, $clause->operator->toOperator(), $clause->resolveValue());
+
+                continue;
+            }
+
+            $query->whereHas($clause->relation, function (Builder $query) use ($clause) {
+                $query->where($clause->attribute, $clause->operator->toOperator(), $clause->resolveValue());
+            });
+        }
+
+        return $query;
     }
 
     /**
@@ -78,7 +148,7 @@ class FilterResolver
      * @return array{}|array{attribute?:string, relation?:string}|null
      * @throws InvalidRelationException
      */
-    public function resolveAttributeAndRelation(string $key): ?array
+    private function resolveAttributeAndRelation(string $key): ?array
     {
         $attribute = function (RelationInterface&Model $owner, string $name): ?string {
             if (AttributeResolver::verify($owner, $name)) {
@@ -109,7 +179,7 @@ class FilterResolver
         return [$attribute($owner, $possibleAttribute), $relation ?? null];
     }
 
-    public function resolveOperator(string $operator, ?string $relation = null): string|FilterOperatorsEnum|null
+    private function resolveOperator(string $operator, ?string $relation = null): string|FilterOperatorsEnum|null
     {
         $resolved = FilterOperatorsEnum::tryFrom($operator);
         if ($resolved) {
@@ -122,7 +192,7 @@ class FilterResolver
         return method_exists($owner, "scope{$operator}") ? $operator : null;
     }
 
-    public function resolveValue(mixed $value, ?string $attribute = null, ?string $relation = null): mixed
+    private function resolveValue(mixed $value, ?string $attribute = null, ?string $relation = null): mixed
     {
         if ($value === null) {
             // The value was not set in the query parameter and therefore null
@@ -138,7 +208,7 @@ class FilterResolver
         };
 
         if ($attribute === null && $relation) {
-            // The value is probably a boolean to query whether an relation exists or not.
+            // The value is probably a boolean to query whether a relation exists or not.
             return (new CastPrimitives($value))->castBool();
         }
 

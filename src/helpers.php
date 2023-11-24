@@ -59,6 +59,6 @@ if (! function_exists('split_on_last')) {
         $last = substr($str, strrpos($str, $splitter) + strlen($splitter));
         $first = substr($str, 0, strrpos($str, ".{$last}"));
 
-        return [$first, $last];
+        return [$first ?: $last, $last ?: $first];
     }
 }

@@ -77,7 +77,7 @@ class AttributeResolver
      * @param  RelationInterface&Model  $model  The model to get the attributes from
      * @param  string                   $name   The name of the primary resource or the relation.
      *
-     * @return string[] The attributes that should be visible prefixed with the name. Always includes the primary key. Defaults to ['*']
+     * @return array<int, string> The attributes that should be visible, prefixed with the name. Always includes the primary key. Defaults to ['*']
      */
     public function getQualified(RelationInterface&Model $model, string $name): array
     {
@@ -141,11 +141,15 @@ class AttributeResolver
         $this->setForced($nestedKey ?? $parentKey, $attribute);
     }
 
-    /** Retrieve the (forced) attributes of the given name. Always includes the primary key */
+    /**
+     * Retrieve the (forced) attributes of the given name. Always includes the primary key
+     *
+     * @return array<int, string>
+     */
     protected function resolve(RelationInterface&Model $model, string $name): array
     {
         if (! $this->hasHiddenAttributes || ! array_key_exists($name, $this->visibleAttributes)) {
-            return ["$name.*"];
+            return [$name];
         }
 
         return array_merge($this->visibleAttributes[ $name ], [$model->getKeyName()], $this->getForced($name));
