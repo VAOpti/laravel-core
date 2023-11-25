@@ -4,6 +4,7 @@ namespace VisionAura\LaravelCore\Http\Resolvers;
 
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\Relation;
 use Illuminate\Support\Arr;
 use Nette\NotImplementedException;
 use Symfony\Component\HttpFoundation\Response;
@@ -66,7 +67,7 @@ class FilterResolver
 
     public function add(string|FilterOperatorsEnum $operator, mixed $value, ?string $attribute = null, ?string $relation = null): self
     {
-        $this->clauses[] = new FilterClauseStruct($relation, $attribute, $operator, $value);
+        $this->clauses[] = new FilterClauseStruct($value, $relation, $attribute, $operator);
 
         return $this;
     }
@@ -78,9 +79,9 @@ class FilterResolver
     }
 
     /**
+     * @return array{}|FilterClauseStruct[]
      * @deprecated Only get() seems necessary. All filters are done on the main resource level, not relation level.
      *
-     * @return array{}|FilterClauseStruct[]
      */
     public function getMain(): array
     {
@@ -89,11 +90,7 @@ class FilterResolver
         });
     }
 
-    /**
-     * @deprecated Only get() seems necessary. All filters are done on the main resource level, not relation level.
-     *
-     * @return array{}|FilterClauseStruct[]
-     */
+    /** @return array{}|FilterClauseStruct[] */
     public function getRelations(?string $relation = null): array
     {
         return Arr::where($this->clauses, function (FilterClauseStruct $args) use ($relation) {
@@ -103,8 +100,22 @@ class FilterResolver
         });
     }
 
+    /**
+     * Takes a Builder or a Relation (usually from a whereHas() function) and adds the clauses to the query.
+     *
+     * @param  array{}|FilterClauseStruct[]  $clauses
+     */
+    public function bind(Builder|Relation $query, array $clauses): Builder|Relation
+    {
+        return match (true) {
+            ($query instanceof Builder) => $this->bindBuilderQuery($query, $clauses),
+            ($query instanceof Relation) => $this->bindRelationQuery($query, $clauses),
+            default => $query
+        };
+    }
+
     /** @param  array{}|FilterClauseStruct[]  $clauses */
-    public function bind(Builder $query, array $clauses): Builder
+    private function bindBuilderQuery(Builder $query, array $clauses): Builder
     {
         // TODO: Find a way to specify ORs in the query.
         foreach ($clauses as $clause) {
@@ -135,6 +146,30 @@ class FilterResolver
             $query->whereHas($clause->relation, function (Builder $query) use ($clause) {
                 $query->where($clause->attribute, $clause->operator->toOperator(), $clause->resolveValue());
             });
+        }
+
+        return $query;
+    }
+
+    /** @param  array{}|FilterClauseStruct[]  $clauses */
+    private function bindRelationQuery(Relation $query, array $clauses): Relation
+    {
+        foreach ($clauses as $clause) {
+            if ($clause->attribute === null) {
+                continue;
+            }
+
+            $related = $this->model->getRelated($clause->relation);
+
+            if (! $related) {
+                continue;
+            }
+
+            if (! $related->is($query->getModel())) {
+                continue;
+            }
+
+            $query->where($clause->attribute, $clause->operator->toOperator(), $clause->resolveValue());
         }
 
         return $query;

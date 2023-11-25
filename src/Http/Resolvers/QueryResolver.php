@@ -154,7 +154,13 @@ final class QueryResolver
                     return implode(",", $selectedAttrs);
                 };
 
-                return $query->selectRaw($selectedAttrs($include));
+                $query->selectRaw($selectedAttrs($include));
+
+                if ($clauses = $this->filter->getRelations($include)) {
+                    $query = $this->filter->bind($query, $clauses);
+                }
+
+                return $query;
             };
 
             $with[ $include ] = $callback;

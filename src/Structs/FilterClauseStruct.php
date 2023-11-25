@@ -7,10 +7,10 @@ use VisionAura\LaravelCore\Http\Enums\FilterOperatorsEnum;
 final readonly class FilterClauseStruct
 {
     public function __construct(
+        public mixed $value,
         public ?string $relation = null,
         public ?string $attribute = null,
-        public string|FilterOperatorsEnum $operator,
-        public mixed $value,
+        public string|FilterOperatorsEnum $operator = FilterOperatorsEnum::EQUALS,
     ) {
         //
     }
