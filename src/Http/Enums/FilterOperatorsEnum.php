@@ -6,6 +6,7 @@ enum FilterOperatorsEnum: string
 {
     // TODO: Create a not equals solution in HTTP syntax
     case EQUALS = 'equals';
+    case NOT_EQUALS = 'not_equals';
     case LT = 'lt';
     case GT = 'gt';
     case LE = 'lq';
@@ -18,6 +19,7 @@ enum FilterOperatorsEnum: string
     {
         return match ($this) {
             self::EQUALS => '=',
+            self::NOT_EQUALS => '!=',
             self::LT => '<',
             self::GT => '>',
             self::LE => '<=',

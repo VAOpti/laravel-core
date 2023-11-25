@@ -159,9 +159,7 @@ class FilterResolver
                 continue;
             }
 
-            $related = $this->model->getRelated($clause->relation);
-
-            if (! $related) {
+            if (! $related = $this->model->getRelated($clause->relation)) {
                 continue;
             }
 
