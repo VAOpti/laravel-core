@@ -27,41 +27,37 @@ class FilterResolver
 
     public function __construct(Model&RelationInterface $model)
     {
-        // TODO: Make it possible to have the value be an array, so the filter can deduct it's a WHEREIN clause
         $this->model = $model;
 
         $filters = request()->all('filter');
 
-        if (! Arr::get($filters, 'filter')) {
+        if (! Arr::has($filters, 'filter')) {
             return;
         }
 
         $this->hasFilter = true;
 
-        $filters = Arr::get($filters, 'filter');
+        $filters = $this->mapFilters(Arr::get($filters, 'filter'));
 
-        Arr::map($filters, function ($val, $key) {
+        Arr::map($filters, function ($filterSet, $key) {
             [$attribute, $relation] = $this->resolveAttributeAndRelation($key);
-            $operator = FilterOperatorsEnum::EQUALS;
 
-            if (is_array($val)) { // If $val is an array, it means an operator is specified.
-                $queryOperator = array_keys($val)[ 0 ];
+            foreach (Arr::wrap($filterSet) as $queryOperator => $queryValue) {
                 $operator = $this->resolveOperator($queryOperator, $relation);
+
                 if (! $operator) {
                     throw new CoreException(ErrorBag::make(
                         __('core::errors.Invalid filter operator'),
-                        'An invalid operator \''.array_keys($val)[ 0 ].'\' was used on a filter in the query.',
-                        'filter['.($relation ? "$relation." : '')."$attribute][".array_keys($val)[ 0 ]."]={$val[ $queryOperator ]}",
+                        "An invalid operator '{$queryOperator}' was used on a filter in the query.",
+                        'filter['.($relation ? "$relation." : '')."$attribute][{$queryOperator}]={$queryValue}",
                         Response::HTTP_BAD_REQUEST
                     )->bag);
                 }
 
-                $val = $val[ $queryOperator ];
+                $value = $this->resolveValue($queryValue, $attribute, $relation);
+
+                $this->add($operator, $value, $attribute, $relation);
             }
-
-            $value = $this->resolveValue($val, $attribute, $relation);
-
-            $this->add($operator, $value, $attribute, $relation);
         });
     }
 
@@ -114,6 +110,25 @@ class FilterResolver
         };
     }
 
+    /**
+     * Set the equals operator for all filters without an operator.
+     *
+     * @return array<mixed>
+     */
+    private function mapFilters(array $filters): array
+    {
+        return Arr::map($filters, function (array|string $filterSet) {
+            $equals = array_filter(Arr::wrap($filterSet), (fn(int|string $key) => is_numeric($key)), ARRAY_FILTER_USE_KEY);
+
+            $equals = count($equals) === 1 ? head($equals) : $equals;
+            if ($equals) {
+                return array_merge([FilterOperatorsEnum::EQUALS->value => $equals], array_diff_assoc(Arr::wrap($filterSet), Arr::wrap($equals)));
+            }
+
+            return $filterSet;
+        });
+    }
+
     /** @param  array{}|FilterClauseStruct[]  $clauses */
     private function bindBuilderQuery(Builder $query, array $clauses): Builder
     {
@@ -138,13 +153,13 @@ class FilterResolver
             }
 
             if (! $clause->relation) {
-                $query->where($clause->attribute, $clause->operator->toOperator(), $clause->resolveValue());
+                $this->attachAttributeWhereClause($query, $clause);
 
                 continue;
             }
 
             $query->whereHas($clause->relation, function (Builder $query) use ($clause) {
-                $query->where($clause->attribute, $clause->operator->toOperator(), $clause->resolveValue());
+                $this->attachAttributeWhereClause($query, $clause);
             });
         }
 
@@ -171,6 +186,29 @@ class FilterResolver
         }
 
         return $query;
+    }
+
+    private function attachAttributeWhereClause(Builder|Relation &$query, FilterClauseStruct $clause): self
+    {
+        /** @returns string{'whereNotIn','whereIn'} */
+        $where = function () use ($clause): string {
+            if (is_array($clause->value)) {
+                if ($clause->operator === FilterOperatorsEnum::NOT_EQUALS) {
+                    return 'whereNotIn';
+                }
+
+                return 'whereIn';
+            }
+
+            return 'where';
+        };
+
+        match ($where()) {
+            'whereNotIn', 'whereIn' => $query->{$where()}($clause->attribute, $clause->resolveValue()),
+            'where' => $query->{$where()}($clause->attribute, $clause->operator->toOperator(), $clause->resolveValue()),
+        };
+
+        return $this;
     }
 
     /**
