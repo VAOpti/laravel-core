@@ -104,5 +104,10 @@ class CoreServiceProvider extends ServiceProvider
                 }
             }
         });
+
+        /** If the array only contains 1 value, it returns that. Otherwise, returns the whole array. */
+        Arr::macro('unwrapSingle', function (array $arr) {
+            return count($arr) === 1 ? head($arr) : $arr;
+        });
     }
 }
