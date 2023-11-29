@@ -88,8 +88,13 @@ class FilterResolver
         });
     }
 
-    public function addClause(string|FilterOperatorsEnum $operator, mixed $value, QueryTypeEnum $type, ?string $attribute = null, ?string $relation = null): self
-    {
+    public function addClause(
+        string|FilterOperatorsEnum $operator,
+        mixed $value,
+        QueryTypeEnum $type,
+        ?string $attribute = null,
+        ?string $relation = null
+    ): self {
         $this->clauses[] = new FilterClauseStruct($type, $value, $relation, $attribute, $operator);
 
         return $this;
@@ -144,13 +149,28 @@ class FilterResolver
      */
     private function mapFilters(array $filters): array
     {
-        // TODO: set operator to equals when operator is just 'or'.
         return Arr::map($filters, function (array|string $filterSet) {
-            $equals = array_filter(Arr::wrap($filterSet), (fn(int|string $key) => is_numeric($key)), ARRAY_FILTER_USE_KEY);
+            // When the operator is or, it's mapped to be or.equals.
+            $equals = array_filter(
+                Arr::wrap($filterSet),
+                (fn(int|string $key) => is_numeric($key) || $key === 'or' || $key === 'equals'),
+                ARRAY_FILTER_USE_KEY);
 
-            $equals = count($equals) === 1 ? head($equals) : $equals;
+            $equalsSet = [];
+            if (in_array('or', array_keys($equals))) {
+                $equalsSet[ 'or.'.FilterOperatorsEnum::EQUALS->value ] = $equals[ 'or' ];
+                unset($equals[ 'or' ]);
+                unset($filterSet[ 'or' ]);
+            }
+
             if ($equals) {
-                return array_merge([FilterOperatorsEnum::EQUALS->value => $equals], array_diff_assoc(Arr::wrap($filterSet), Arr::wrap($equals)));
+                $equalsSet[ FilterOperatorsEnum::EQUALS->value ] = Arr::unwrapSingle(array_values($equals));
+            }
+
+            $equals = Arr::unwrapSingle($equals);
+
+            if ($equalsSet) {
+                return array_merge($equalsSet, array_diff_assoc(Arr::wrap($filterSet), Arr::wrap($equals)));
             }
 
             return $filterSet;
@@ -160,7 +180,6 @@ class FilterResolver
     /** @param  array{}|FilterClauseStruct[]  $clauses */
     private function bindBuilderQuery(Builder $query, array $clauses): Builder
     {
-        // TODO: Find a way to specify ORs in the query.
         foreach ($clauses as $clause) {
             if ($clause->relation !== null && $clause->attribute === null) {
                 $where = $clause->value ? 'whereHas' : 'doesntHave';
@@ -175,6 +194,7 @@ class FilterResolver
                     throw new NotImplementedException('Can\'t use scope functions on relations yet.', Response::HTTP_NOT_IMPLEMENTED);
                 }
 
+                // TODO: Check if scope actually exists.
                 $query->{$clause->operator}();
 
                 continue;
@@ -219,10 +239,11 @@ class FilterResolver
     private function attachWhereClause(Builder|Relation &$query, FilterClauseStruct $clause): void
     {
         match ($clause->type) {
-            QueryTypeEnum::WHERE_IN, QueryTypeEnum::OR_WHERE_IN, QueryTypeEnum::WHERE_NOT_IN, QueryTypeEnum::OR_WHERE_NOT_IN
-                => $query->{$clause->type->value}($clause->attribute, $clause->resolveValue()),
             QueryTypeEnum::WHERE, QueryTypeEnum::OR_WHERE, QueryTypeEnum::WHERE_NOT, QueryTypeEnum::OR_WHERE_NOT
-                => $query->{$clause->type->value}($clause->attribute, $clause->operator->toOperator(), $clause->resolveValue()),
+            => $query->{$clause->type->value}($clause->attribute, $clause->operator->toOperator(), $clause->resolveValue()),
+            QueryTypeEnum::WHERE_IN, QueryTypeEnum::OR_WHERE_IN, QueryTypeEnum::WHERE_NOT_IN, QueryTypeEnum::OR_WHERE_NOT_IN
+            => $query->{$clause->type->value}($clause->attribute, $clause->resolveValue()),
+            default => throw new \Exception('Unhandled where clause')
         };
     }
 
@@ -311,7 +332,7 @@ class FilterResolver
      */
     private function resolveQueryType(mixed $value, string|FilterOperatorsEnum $operator, ?string $queryType = null): ?QueryTypeEnum
     {
-        if (! $queryType || is_string($operator)) {
+        if (is_string($operator)) {
             return QueryTypeEnum::WHERE;
         }
 
