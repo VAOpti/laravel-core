@@ -6,4 +6,5 @@ return [
     'Could not find the requested resource.' => 'Kon de gevraagde gegevens niet ophalen.',
     'Pagination failed' => 'Paginatie mislukt',
     'Invalid filter operator' => 'Ongeldige filter operator',
+    'Invalid request' => 'Ongeldig request',
 ];

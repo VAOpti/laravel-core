@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\Relation;
 use Illuminate\Support\Arr;
+use Illuminate\Support\Str;
 use Nette\NotImplementedException;
 use Symfony\Component\HttpFoundation\Response;
 use VisionAura\LaravelCore\Casts\CastPrimitives;
@@ -13,6 +14,7 @@ use VisionAura\LaravelCore\Exceptions\CoreException;
 use VisionAura\LaravelCore\Exceptions\ErrorBag;
 use VisionAura\LaravelCore\Exceptions\InvalidRelationException;
 use VisionAura\LaravelCore\Http\Enums\FilterOperatorsEnum;
+use VisionAura\LaravelCore\Http\Enums\QueryTypeEnum;
 use VisionAura\LaravelCore\Interfaces\RelationInterface;
 use VisionAura\LaravelCore\Structs\FilterClauseStruct;
 
@@ -29,7 +31,7 @@ class FilterResolver
     {
         $this->model = $model;
 
-        $filters = request()->all('filter');
+        $filters = array_filter(request()->all('filter'));
 
         if (! Arr::has($filters, 'filter')) {
             return;
@@ -43,27 +45,52 @@ class FilterResolver
             [$attribute, $relation] = $this->resolveAttributeAndRelation($key);
 
             foreach (Arr::wrap($filterSet) as $queryOperator => $queryValue) {
-                $operator = $this->resolveOperator($queryOperator, $relation);
+                $value = $this->resolveValue($queryValue, $attribute, $relation);
 
+                if (str_contains($queryOperator, '.')) {
+                    $queryType = strtok($queryOperator, '.');
+                    $queryOperator = substr($queryOperator, strlen("$queryType."));
+                }
+
+                $operator = $this->resolveOperator($queryOperator, $relation);
                 if (! $operator) {
                     throw new CoreException(ErrorBag::make(
-                        __('core::errors.Invalid filter operator'),
+                        __('core::errors.Invalid request'),
                         "An invalid operator '{$queryOperator}' was used on a filter in the query.",
-                        'filter['.($relation ? "$relation." : '')."$attribute][{$queryOperator}]={$queryValue}",
+                        'filter['.($relation ? "$relation." : '')."$attribute][".(($queryType ?? null) ? "$queryType." : '')."{$queryOperator}]={$queryValue}",
                         Response::HTTP_BAD_REQUEST
                     )->bag);
                 }
 
-                $value = $this->resolveValue($queryValue, $attribute, $relation);
+                $type = $this->resolveQueryType($value, $operator, $queryType ?? null);
+                if (! $type) {
+                    $queryValue = is_array($queryValue) ? head($queryValue) : $queryValue;
 
-                $this->add($operator, $value, $attribute, $relation);
+                    if (isset($queryType)) {
+                        throw new CoreException(ErrorBag::make(
+                            __('core::errors.Invalid request'),
+                            "An invalid query type '{$queryType}' was used on a filter in the query.",
+                            'filter['.($relation ? "$relation." : '')."{$attribute}][{$queryType}.{$queryOperator}]={$queryValue}",
+                            Response::HTTP_BAD_REQUEST
+                        )->bag);
+                    } else {
+                        throw new CoreException(ErrorBag::make(
+                            __('core::errors.Server error'),
+                            "The query type could not be determined for the query.",
+                            'filter['.($relation ? "$relation." : '')."{$attribute}][{$queryOperator}]={$queryValue}",
+                            Response::HTTP_INTERNAL_SERVER_ERROR
+                        )->bag);
+                    }
+                }
+
+                $this->addClause($operator, $value, $type, $attribute, $relation);
             }
         });
     }
 
-    public function add(string|FilterOperatorsEnum $operator, mixed $value, ?string $attribute = null, ?string $relation = null): self
+    public function addClause(string|FilterOperatorsEnum $operator, mixed $value, QueryTypeEnum $type, ?string $attribute = null, ?string $relation = null): self
     {
-        $this->clauses[] = new FilterClauseStruct($value, $relation, $attribute, $operator);
+        $this->clauses[] = new FilterClauseStruct($type, $value, $relation, $attribute, $operator);
 
         return $this;
     }
@@ -117,6 +144,7 @@ class FilterResolver
      */
     private function mapFilters(array $filters): array
     {
+        // TODO: set operator to equals when operator is just 'or'.
         return Arr::map($filters, function (array|string $filterSet) {
             $equals = array_filter(Arr::wrap($filterSet), (fn(int|string $key) => is_numeric($key)), ARRAY_FILTER_USE_KEY);
 
@@ -153,13 +181,13 @@ class FilterResolver
             }
 
             if (! $clause->relation) {
-                $this->attachAttributeWhereClause($query, $clause);
+                $this->attachWhereClause($query, $clause);
 
                 continue;
             }
 
             $query->whereHas($clause->relation, function (Builder $query) use ($clause) {
-                $this->attachAttributeWhereClause($query, $clause);
+                $this->attachWhereClause($query, $clause);
             });
         }
 
@@ -188,27 +216,14 @@ class FilterResolver
         return $query;
     }
 
-    private function attachAttributeWhereClause(Builder|Relation &$query, FilterClauseStruct $clause): self
+    private function attachWhereClause(Builder|Relation &$query, FilterClauseStruct $clause): void
     {
-        /** @returns string{'whereNotIn','whereIn'} */
-        $where = function () use ($clause): string {
-            if (is_array($clause->value)) {
-                if ($clause->operator === FilterOperatorsEnum::NOT_EQUALS) {
-                    return 'whereNotIn';
-                }
-
-                return 'whereIn';
-            }
-
-            return 'where';
+        match ($clause->type) {
+            QueryTypeEnum::WHERE_IN, QueryTypeEnum::OR_WHERE_IN, QueryTypeEnum::WHERE_NOT_IN, QueryTypeEnum::OR_WHERE_NOT_IN
+                => $query->{$clause->type->value}($clause->attribute, $clause->resolveValue()),
+            QueryTypeEnum::WHERE, QueryTypeEnum::OR_WHERE, QueryTypeEnum::WHERE_NOT, QueryTypeEnum::OR_WHERE_NOT
+                => $query->{$clause->type->value}($clause->attribute, $clause->operator->toOperator(), $clause->resolveValue()),
         };
-
-        match ($where()) {
-            'whereNotIn', 'whereIn' => $query->{$where()}($clause->attribute, $clause->resolveValue()),
-            'where' => $query->{$where()}($clause->attribute, $clause->operator->toOperator(), $clause->resolveValue()),
-        };
-
-        return $this;
     }
 
     /**
@@ -252,6 +267,7 @@ class FilterResolver
 
     private function resolveOperator(string $operator, ?string $relation = null): string|FilterOperatorsEnum|null
     {
+        // TODO: Make it possible to resolve to 'equals' when operator is just 'or'
         $resolved = FilterOperatorsEnum::tryFrom($operator);
         if ($resolved) {
             return $resolved;
@@ -284,5 +300,35 @@ class FilterResolver
         }
 
         return (new CastPrimitives($value, $casts()[ $attribute ] ?? ''))->cast();
+    }
+
+    /**
+     * @param  mixed                       $value
+     * @param  string|FilterOperatorsEnum  $operator
+     * @param  string|null                 $queryType  The string that's passed in the request.
+     *
+     * @return QueryTypeEnum|null
+     */
+    private function resolveQueryType(mixed $value, string|FilterOperatorsEnum $operator, ?string $queryType = null): ?QueryTypeEnum
+    {
+        if (! $queryType || is_string($operator)) {
+            return QueryTypeEnum::WHERE;
+        }
+
+        $where = Str::of('where');
+
+        if ($queryType === 'or') {
+            $where = $where->ucfirst()->prepend('or');
+        }
+
+        if ($operator === FilterOperatorsEnum::NOT_EQUALS) {
+            $where = $where->append('Not');
+        }
+
+        if (is_array($value)) {
+            $where = $where->append('In');
+        }
+
+        return QueryTypeEnum::tryFrom((string) $where);
     }
 }
