@@ -125,16 +125,17 @@ class CoreResource extends JsonResource
 
     protected function setTimestamps(): self
     {
-        if ($this->resource->timestamps) {
-            foreach (['created_at', 'updated_at'] as $timestamp) {
-                $this->timestamps[ $timestamp ] = $this->resource->{$timestamp};
-                unset($this->attributes[ $timestamp ]);
-            }
+        $datetimes = new Collection(['created_at', 'updated_at']);
+        $datetimes->push(...array_keys($this->resource->getCasts()))
+            ->where(fn(string $val) => $val === 'datetime');
 
-            if ($this->resource->hasCast('deleted_at')) {
-                $this->timestamps[ 'deleted_at' ] = $this->resource->deleted_at;
-                unset($this->attributes[ 'deleted_at' ]);
-            }
+        $datetimes = $datetimes->reject(function (string $val) {
+            return ! array_key_exists($val, $this->attributes);
+        });
+
+        foreach ($datetimes as $datetime) {
+            $this->timestamps[ $datetime ] = $this->resource->{$datetime};
+            unset($this->attributes[ $datetime ]);
         }
 
         return $this;
