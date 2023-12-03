@@ -139,16 +139,21 @@ final class QueryResolver
         foreach ($this->includes->relations as $include) {
             $callback = function (Relation $query) use ($include) {
                 $selectedAttrs = function ($include): string {
-                    $includeAttrs = $this->attributes->get($this->model, $include);
-
-                    if (count($includeAttrs) === 1 && $includeAttrs[ 0 ] === $include) {
-                        return "$include.*";
-                    }
+                    $relevantTable = $include;
 
                     // Make sure we take the relevant table in a nested relation
-                    [$precedingPath, $relevantRelation] = split_on_last($include);
-                    $selectedAttrs = Arr::map($includeAttrs, function (string $attribute) use ($relevantRelation) {
-                        return "{$relevantRelation}.{$attribute}";
+                    if (str_contains($include, '.')) {
+                        [$precedingPath, $relevantTable] = split_on_last($include);
+                    }
+
+                    $includeAttrs = $this->attributes->get($this->model, $include);
+
+                    if (count($includeAttrs) === 1 && Arr::first($includeAttrs) === $include) {
+                        return "$relevantTable.*";
+                    }
+
+                    $selectedAttrs = Arr::map($includeAttrs, function (string $attribute) use ($relevantTable) {
+                        return "{$relevantTable}.{$attribute}";
                     });
 
                     return implode(",", $selectedAttrs);
@@ -170,9 +175,9 @@ final class QueryResolver
 
         try {
             if ($this->pagination->hasPagination) {
-                $this->resolved = $query->paginate(perPage: $this->pagination->getPerPage(), page: $this->pagination->getPage())->unique();
+                $this->resolved = $query->paginate(perPage: $this->pagination->getPerPage(), page: $this->pagination->getPage());
             } else {
-                $this->resolved = $query->get()->unique();
+                $this->resolved = $query->get();
             }
         } catch (QueryException) {
             throw new CoreException(ErrorBag::make(

@@ -83,6 +83,10 @@ class AttributeResolver
     {
         $attributes = $this->resolve($model, $name);
 
+        if (Arr::first($attributes) === $name) {
+            return ["{$name}.*"];
+        }
+
         // Prefix every value with the name of the table.
         return preg_filter('/^/', "$name.", $attributes);
     }

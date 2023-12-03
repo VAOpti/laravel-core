@@ -288,7 +288,6 @@ class FilterResolver
 
     private function resolveOperator(string $operator, ?string $relation = null): string|FilterOperatorsEnum|null
     {
-        // TODO: Make it possible to resolve to 'equals' when operator is just 'or'
         $resolved = FilterOperatorsEnum::tryFrom($operator);
         if ($resolved) {
             return $resolved;
