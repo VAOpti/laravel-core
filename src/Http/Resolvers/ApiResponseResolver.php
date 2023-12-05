@@ -27,7 +27,7 @@ class ApiResponseResolver
 
     public function collection(): GenericCollection
     {
-        $collectionQuery = $this->model::select($this->queryResolver->attributes($this->model));
+        $collectionQuery = $this->model::select($this->queryResolver->attributes());
         $collection = $this->queryResolver->resolve($collectionQuery);
 
         return new GenericCollection($collection);
@@ -36,7 +36,8 @@ class ApiResponseResolver
     public function resource(string $id): GenericResource
     {
         $this->queryResolver->filter->addClause(QueryTypeEnum::WHERE, FilterOperatorsEnum::EQUALS, $id, $this->model->getKeyName());
-        $resource = $this->queryResolver->resolve($this->model::query(), true);
+        $resourceQuery = $this->model::select($this->queryResolver->attributes());
+        $resource = $this->queryResolver->resolve($resourceQuery, true);
 
         return new GenericResource($resource);
     }

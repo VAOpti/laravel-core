@@ -42,7 +42,7 @@ final class QueryResolver
         // They can then be assumed to be safe when querying for attributes.
         $this->includes = new RelationResolver($model, $request);
         $this->pagination = new PaginateResolver($model, $request);
-        $this->attributes = new AttributeResolver($request);
+        $this->attributes = new AttributeResolver($model, $request);
         $this->sort = new SortResolver($model, $request);
         $this->filter = new FilterResolver($model, $request);
 
@@ -147,7 +147,7 @@ final class QueryResolver
                     $relevantTable = $include;
 
                     // Make sure we take the relevant table in a nested relation
-                    if ($this->model->isRelation($relevantTable)) {
+                    if ($this->model->verifyRelation($relevantTable)) {
                         $relevantTable = $this->model->getRelated($relevantTable)->getTable();
                     }
 

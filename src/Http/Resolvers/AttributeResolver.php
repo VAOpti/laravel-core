@@ -5,6 +5,7 @@ namespace VisionAura\LaravelCore\Http\Resolvers;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\Schema;
+use Symfony\Component\HttpFoundation\Exception\BadRequestException;
 use VisionAura\LaravelCore\Http\Requests\CoreRequest;
 use VisionAura\LaravelCore\Interfaces\RelationInterface;
 
@@ -17,9 +18,16 @@ class AttributeResolver
     /** @var string[] $force */
     protected array $force = [];
 
-    public function __construct(CoreRequest $request)
+    public function __construct(Model $model, CoreRequest $request)
     {
-        $fields = $request->query->all('fields') ?? [];
+        try {
+            $fields = $request->query->get('fields') ?? [];
+            $fields = [$model->getTable() => $fields];
+        } catch (BadRequestException $e) {
+            $fields = $request->query->all('fields') ?? [];
+        }
+
+        $fields = array_filter($fields);
 
         $this->hasHiddenAttributes = (bool) $fields;
 
@@ -157,6 +165,7 @@ class AttributeResolver
             return [$name];
         }
 
-        return array_merge($this->visibleAttributes[ $name ], [$model->getKeyName()], $this->getForced($name));
+        // array_unique() is because the id from getKeyName() can already be a forced attribute.
+        return array_unique([...$this->visibleAttributes[ $name ], ...[$model->getKeyName()], ...$this->getForced($name)]);
     }
 }
