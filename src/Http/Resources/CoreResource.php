@@ -88,6 +88,7 @@ class CoreResource extends JsonResource
                 continue;
             }
 
+            // The relation is an array
             foreach ($loadedRelations as $relation) {
                 $includes[ $name ][] = (new self($relation))->toArray(request());
             }
@@ -196,7 +197,7 @@ class CoreResource extends JsonResource
             return $this;
         }
 
-        static::mapIncludes($this->resource);
+        $this->includes = static::mapIncludes($this->resource);
 
         return $this;
     }

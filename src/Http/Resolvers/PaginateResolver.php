@@ -8,6 +8,7 @@ use Illuminate\Support\Str;
 use Symfony\Component\HttpFoundation\Response;
 use VisionAura\LaravelCore\Exceptions\CoreException;
 use VisionAura\LaravelCore\Exceptions\ErrorBag;
+use VisionAura\LaravelCore\Http\Requests\CoreRequest;
 
 class PaginateResolver
 {
@@ -19,9 +20,9 @@ class PaginateResolver
     /**
      * @throws CoreException
      */
-    public function __construct(Model $model)
+    public function __construct(Model $model, CoreRequest $request)
     {
-        $pagination = request()->query->all('page');
+        $pagination = $request->query->all('page');
 
         $this->hasPagination = (bool) $pagination;
 
@@ -33,7 +34,7 @@ class PaginateResolver
             throw new CoreException(ErrorBag::make(
                 __('core::errors.Pagination failed'),
                 'The page query parameter must include the offset key.',
-                sprintf("page%s", Str::of(request()->server->get('QUERY_STRING'))->between('&page', '&')->value()),
+                sprintf("page%s", Str::of($request->server->get('QUERY_STRING'))->between('&page', '&')->value()),
                 Response::HTTP_BAD_REQUEST)->bag
             );
         }

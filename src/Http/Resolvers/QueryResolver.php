@@ -12,11 +12,12 @@ use Illuminate\Support\Collection;
 use Symfony\Component\HttpFoundation\Response;
 use VisionAura\LaravelCore\Exceptions\CoreException;
 use VisionAura\LaravelCore\Exceptions\ErrorBag;
+use VisionAura\LaravelCore\Http\Requests\CoreRequest;
 use VisionAura\LaravelCore\Interfaces\RelationInterface;
 
 final class QueryResolver
 {
-    protected Collection|LengthAwarePaginator $resolved;
+    protected Collection|LengthAwarePaginator|Model $resolved;
 
     protected RelationInterface&Model $model;
 
@@ -28,22 +29,22 @@ final class QueryResolver
 
     protected SortResolver $sort;
 
-    protected FilterResolver $filter;
+    public FilterResolver $filter;
 
     /**
      * @throws CoreException
      */
-    public function __construct(RelationInterface&Model $model)
+    public function __construct(RelationInterface&Model $model, CoreRequest $request)
     {
         $this->model = $model;
 
         // Important: run the RelationService first to validate all relationships.
         // They can then be assumed to be safe when querying for attributes.
-        $this->includes = new RelationResolver($model);
-        $this->pagination = new PaginateResolver($model);
-        $this->attributes = new AttributeResolver();
-        $this->sort = new SortResolver($model);
-        $this->filter = new FilterResolver($model);
+        $this->includes = new RelationResolver($model, $request);
+        $this->pagination = new PaginateResolver($model, $request);
+        $this->attributes = new AttributeResolver($request);
+        $this->sort = new SortResolver($model, $request);
+        $this->filter = new FilterResolver($model, $request);
 
         $name = pluralizeModel($this->model);
 
@@ -78,16 +79,20 @@ final class QueryResolver
     /**
      * @throws CoreException
      */
-    public function resolve(Builder $query): Collection|LengthAwarePaginator
+    public function resolve(Builder $query, bool $first = false): Collection|LengthAwarePaginator|Model
     {
-        $this->resolveQuery($query)->resolveRelations();
+        $this->resolveQuery($query, $first)->resolveRelations();
 
         // Hide attributes that were added for the purpose of loading the relationship
         $name = pluralizeModel($this->model);
         if ($this->attributes->getForced($name)) {
-            $this->resolved->transform(function (Model $model) use ($name) {
+            $this->resolved = Collection::wrap($this->resolved)->transform(function (Model $model) use ($name) {
                 return $model->setHidden($this->attributes->getForced($name));
             });
+        }
+
+        if ($first) {
+            $this->resolved = $this->resolved->firstOrFail();
         }
 
         return $this->resolved;
@@ -130,7 +135,7 @@ final class QueryResolver
     /**
      * @throws CoreException
      */
-    protected function resolveQuery(Builder $query): self
+    protected function resolveQuery(Builder $query, bool $first = false): self
     {
         $query = $this->filter->bind($query, $this->filter->get());
         $query = $this->sort->bind($query);
@@ -142,8 +147,8 @@ final class QueryResolver
                     $relevantTable = $include;
 
                     // Make sure we take the relevant table in a nested relation
-                    if (str_contains($include, '.')) {
-                        [$precedingPath, $relevantTable] = split_on_last($include);
+                    if ($this->model->isRelation($relevantTable)) {
+                        $relevantTable = $this->model->getRelated($relevantTable)->getTable();
                     }
 
                     $includeAttrs = $this->attributes->get($this->model, $include);
@@ -176,6 +181,8 @@ final class QueryResolver
         try {
             if ($this->pagination->hasPagination) {
                 $this->resolved = $query->paginate(perPage: $this->pagination->getPerPage(), page: $this->pagination->getPage());
+            } elseif ($first) {
+                $this->resolved = $query->firstOrFail();
             } else {
                 $this->resolved = $query->get();
             }

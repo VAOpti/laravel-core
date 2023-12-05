@@ -39,9 +39,7 @@ class CoreController extends Controller
      */
     public function index(CoreRequest $request): GenericCollection|JsonResponse
     {
-        if (! ($request = $this->resolveRequestFrom($request)) && $this->hasErrors()) {
-            return $this->getErrors()->build();
-        }
+        $request = $this->resolveRequestFrom($request);
 
         try {
             $this->validateProperty($this->model ?? null, Model::class);
@@ -53,7 +51,7 @@ class CoreController extends Controller
 
         $this->checkErrors();
 
-        return $this->apiResponse(new $this->model())->collection();
+        return $this->apiResponse(new $this->model(), $request)->collection();
     }
 
     /**
@@ -78,13 +76,25 @@ class CoreController extends Controller
         return new GenericCollection($model->load($relation)->getRelation($relation));
     }
 
+    /**
+     * @throws CoreException
+     * @throws InvalidStatusCodeException
+     */
     public function show(CoreRequest $request, string $id): GenericResource|JsonResponse
     {
-        if (! ($model = $this->resolveModelFrom($id)) && $this->hasErrors()) {
-            return $this->getErrors()->build();
+        $request = $this->resolveRequestFrom($request);
+
+        try {
+            $this->validateProperty($this->model ?? null, Model::class);
+        } catch (InvalidPropertyOrMethod $error) {
+            $this->getErrors()->push(__('core::errors.Server error'), $error->getMessage());
+        } catch (ClassNotFoundError $error) {
+            $this->getErrors()->push(__('core::errors.Server error'), $error->getMessage());
         }
 
-        return new GenericResource($model);
+        $this->checkErrors();
+
+        return $this->apiResponse(new $this->model(), $request)->resource($id);
     }
 
     public function delete(string $id): JsonResponse

@@ -3,6 +3,7 @@
 namespace VisionAura\LaravelCore\Http\Resolvers;
 
 use VisionAura\LaravelCore\Exceptions\CoreException;
+use VisionAura\LaravelCore\Http\Requests\CoreRequest;
 use VisionAura\LaravelCore\Interfaces\RelationInterface;
 
 class RelationResolver
@@ -20,11 +21,11 @@ class RelationResolver
      *
      * @throws CoreException
      */
-    public function __construct(RelationInterface $model)
+    public function __construct(RelationInterface $model, CoreRequest $request)
     {
         $this->model = $model;
 
-        $includes = request()->query->getString('include');
+        $includes = $request->query->getString('include');
         $this->relations = array_filter(explode(',', $includes));
 
         $this->hasRelations = ((bool) $this->relations);

@@ -4,6 +4,9 @@ namespace VisionAura\LaravelCore\Http\Resolvers;
 
 use Illuminate\Database\Eloquent\Model;
 use VisionAura\LaravelCore\Exceptions\CoreException;
+use VisionAura\LaravelCore\Http\Enums\FilterOperatorsEnum;
+use VisionAura\LaravelCore\Http\Enums\QueryTypeEnum;
+use VisionAura\LaravelCore\Http\Requests\CoreRequest;
 use VisionAura\LaravelCore\Http\Resources\GenericCollection;
 use VisionAura\LaravelCore\Http\Resources\GenericResource;
 
@@ -16,10 +19,10 @@ class ApiResponseResolver
     /**
      * @throws CoreException
      */
-    public function __construct(Model $model)
+    public function __construct(Model $model, CoreRequest $request)
     {
         $this->model = $model;
-        $this->queryResolver = new QueryResolver($model);
+        $this->queryResolver = new QueryResolver($model, $request);
     }
 
     public function collection(): GenericCollection
@@ -30,8 +33,11 @@ class ApiResponseResolver
         return new GenericCollection($collection);
     }
 
-    public function resource(): GenericResource
+    public function resource(string $id): GenericResource
     {
-        return new GenericResource($this->model);
+        $this->queryResolver->filter->addClause(QueryTypeEnum::WHERE, FilterOperatorsEnum::EQUALS, $id, $this->model->getKeyName());
+        $resource = $this->queryResolver->resolve($this->model::query(), true);
+
+        return new GenericResource($resource);
     }
 }

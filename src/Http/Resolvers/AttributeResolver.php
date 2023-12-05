@@ -5,6 +5,7 @@ namespace VisionAura\LaravelCore\Http\Resolvers;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\Schema;
+use VisionAura\LaravelCore\Http\Requests\CoreRequest;
 use VisionAura\LaravelCore\Interfaces\RelationInterface;
 
 class AttributeResolver
@@ -16,9 +17,9 @@ class AttributeResolver
     /** @var string[] $force */
     protected array $force = [];
 
-    public function __construct()
+    public function __construct(CoreRequest $request)
     {
-        $fields = request()->query->all('fields') ?? [];
+        $fields = $request->query->all('fields') ?? [];
 
         $this->hasHiddenAttributes = (bool) $fields;
 

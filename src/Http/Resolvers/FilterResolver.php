@@ -15,6 +15,7 @@ use VisionAura\LaravelCore\Exceptions\ErrorBag;
 use VisionAura\LaravelCore\Exceptions\InvalidRelationException;
 use VisionAura\LaravelCore\Http\Enums\FilterOperatorsEnum;
 use VisionAura\LaravelCore\Http\Enums\QueryTypeEnum;
+use VisionAura\LaravelCore\Http\Requests\CoreRequest;
 use VisionAura\LaravelCore\Interfaces\RelationInterface;
 use VisionAura\LaravelCore\Structs\FilterClauseStruct;
 
@@ -27,11 +28,11 @@ class FilterResolver
 
     protected bool $hasFilter = false;
 
-    public function __construct(Model&RelationInterface $model)
+    public function __construct(Model&RelationInterface $model, CoreRequest $request)
     {
         $this->model = $model;
 
-        $filters = array_filter(request()->all('filter'));
+        $filters = array_filter($request->all('filter'));
 
         if (! Arr::has($filters, 'filter')) {
             return;
@@ -83,15 +84,15 @@ class FilterResolver
                     }
                 }
 
-                $this->addClause($operator, $value, $type, $attribute, $relation);
+                $this->addClause($type, $operator, $value, $attribute, $relation);
             }
         });
     }
 
     public function addClause(
+        QueryTypeEnum $type,
         string|FilterOperatorsEnum $operator,
         mixed $value,
-        QueryTypeEnum $type,
         ?string $attribute = null,
         ?string $relation = null
     ): self {

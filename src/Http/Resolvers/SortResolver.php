@@ -4,6 +4,7 @@ namespace VisionAura\LaravelCore\Http\Resolvers;
 
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Arr;
+use VisionAura\LaravelCore\Http\Requests\CoreRequest;
 use VisionAura\LaravelCore\Interfaces\RelationInterface;
 use VisionAura\LaravelCore\Structs\ParentChildRelationStruct;
 
@@ -16,9 +17,9 @@ class SortResolver
 
     protected bool $hasSorts = false;
 
-    public function __construct(RelationInterface $model)
+    public function __construct(RelationInterface $model, CoreRequest $request)
     {
-        $sorts = explode(',', request()->query->getString('sort'));
+        $sorts = explode(',', $request->query->getString('sort'));
 
         foreach (array_filter($sorts) as $sort) {
             $direction = 'asc';
