@@ -104,30 +104,13 @@ final class QueryResolver
             return $this;
         }
 
-        $this->resolved->each(function (Model $model) {
-            $model = flattenRelations($model);
-
-            $hiddenAttrs = array_intersect(array_keys($model->getRelations()), array_keys($this->attributes->getForced()));
-            foreach ($hiddenAttrs as $hiddenAttr) {
-                /** @var Collection $relationCollection */
-                $relationCollection = $model->getRelation($hiddenAttr);
-                $relationCollection->each(function (Model $model) use ($hiddenAttr) {
-                    return $model->setHidden($this->attributes->getForced($hiddenAttr));
-                });
-            }
-
-            $stepParents = array_diff(array_keys($model->getRelations()), $this->includes->relations);
-            foreach ($stepParents as $stepParent) {
-                $model->unsetRelation($stepParent);
-            }
-
-            $missingRelations = array_diff($this->includes->relations, array_keys($model->getRelations()));
-            foreach ($missingRelations as $missingRelation) {
-                $model->setRelation($missingRelation, []);
-            }
-
-            return $model;
-        });
+        if ($this->resolved instanceof Model) {
+            $this->resolved = $this->mapRelations($this->resolved);
+        } else {
+            $this->resolved->each(function (Model $model) {
+                $this->mapRelations($model);
+            });
+        }
 
         return $this;
     }
@@ -205,5 +188,35 @@ final class QueryResolver
         $this->attributes->forceDependentKeys($foreignKeyOwner, $model, $parentName, $relation, $dependentKeys, $nestedKey);
 
         return $this;
+    }
+
+    /**
+     * Flatten the relations, so it's easier to loop over later.
+     * Hide the attributes that are forced.
+     * If there were no results for the relation, set those missing relations to an empty array.
+     */
+    protected function mapRelations(Model $model): Model {
+        $model = flattenRelations($model);
+
+        $hiddenAttrs = array_intersect(array_keys($model->getRelations()), array_keys($this->attributes->getForced()));
+        foreach ($hiddenAttrs as $hiddenAttr) {
+            /** @var Collection $relationCollection */
+            $relationCollection = $model->getRelation($hiddenAttr);
+            $relationCollection->each(function (Model $model) use ($hiddenAttr) {
+                return $model->setHidden($this->attributes->getForced($hiddenAttr));
+            });
+        }
+
+        $stepParents = array_diff(array_keys($model->getRelations()), $this->includes->relations);
+        foreach ($stepParents as $stepParent) {
+            $model->unsetRelation($stepParent);
+        }
+
+        $missingRelations = array_diff($this->includes->relations, array_keys($model->getRelations()));
+        foreach ($missingRelations as $missingRelation) {
+            $model->setRelation($missingRelation, []);
+        }
+
+        return $model;
     }
 }

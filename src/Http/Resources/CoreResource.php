@@ -82,14 +82,7 @@ class CoreResource extends JsonResource
                 continue;
             }
 
-            if ($loadedRelations instanceof Model) {
-                $includes[ $name ][] = (new self($loadedRelations))->toArray(request());
-
-                continue;
-            }
-
-            // The relation is an array
-            foreach ($loadedRelations as $relation) {
+            foreach (Collection::wrap($loadedRelations) as $relation) {
                 $includes[ $name ][] = (new self($relation))->toArray(request());
             }
         }
@@ -197,7 +190,21 @@ class CoreResource extends JsonResource
             return $this;
         }
 
-        $this->includes = static::mapIncludes($this->resource);
+        foreach (static::mapIncludes($this->resource) as $relation => $resourceIncludes) {
+            foreach ($resourceIncludes as $resourceInclude) {
+                if (! array_key_exists($relation, $this->includes) && ! $resourceInclude) {
+                    $this->includes[$relation] = [];
+
+                    continue;
+                }
+
+                if (! $resourceInclude) {
+                    continue;
+                }
+
+                $this->includes[$relation][] = $resourceInclude;
+            }
+        }
 
         return $this;
     }

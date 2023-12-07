@@ -19,6 +19,10 @@ if (! function_exists('flattenRelations')) {
         }
 
         foreach ($relationCollection as $name => $relations) {
+            if (! $relations) {
+                continue;
+            }
+
             /** @var Model|bool $relation */
             foreach ($relations as $relation) {
                 if (! ($relation instanceof Model)) {
