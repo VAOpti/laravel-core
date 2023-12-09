@@ -26,7 +26,7 @@ class FilterResolver
     /** @var FilterClauseStruct[] */
     protected array $clauses = [];
 
-    protected bool $hasFilter = false;
+    public bool $hasFilter = false;
 
     public function __construct(Model&RelationInterface $model, CoreRequest $request)
     {

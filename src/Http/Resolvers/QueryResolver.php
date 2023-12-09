@@ -21,7 +21,7 @@ final class QueryResolver
 
     protected RelationInterface&Model $model;
 
-    protected AttributeResolver $attributes;
+    public AttributeResolver $attributes;
 
     protected RelationResolver $includes;
 
@@ -91,7 +91,7 @@ final class QueryResolver
             });
         }
 
-        if ($first) {
+        if ($first && $this->resolved instanceof Collection) {
             $this->resolved = $this->resolved->firstOrFail();
         }
 
