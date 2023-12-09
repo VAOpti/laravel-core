@@ -50,6 +50,7 @@ class CoreRepository
 
         return $this;
     }
+
     protected function simpleUpdate(Model $model, array $attributes): Model
     {
         $model->fill($attributes);
