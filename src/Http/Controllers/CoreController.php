@@ -13,6 +13,7 @@ use Symfony\Component\ErrorHandler\Error\ClassNotFoundError;
 use Symfony\Component\HttpFoundation\Response;
 use VisionAura\LaravelCore\Exceptions\CoreException;
 use VisionAura\LaravelCore\Exceptions\InvalidStatusCodeException;
+use VisionAura\LaravelCore\Http\Repositories\CoreRepository;
 use VisionAura\LaravelCore\Http\Requests\CoreRequest;
 use VisionAura\LaravelCore\Http\Resources\GenericCollection;
 use VisionAura\LaravelCore\Http\Resources\GenericResource;
@@ -94,11 +95,17 @@ class CoreController extends Controller
 
         $this->checkErrors();
 
-        return $this->apiResponse(new $this->model(), $request)->resource($id);
+        return $this->apiResponse(new $this->model(), $request)->from($id)->resource();
     }
 
     public function delete(string $id): JsonResponse
     {
+        $this->validateProperty($this->repository ?? null, CoreRepository::class);
+
+        if (method_exists($this->repository, 'beforeDelete')) {
+            (new $this->repository())->beforeDelete();
+        }
+
         if (! ($model = $this->resolveModelFrom($id)) && $this->hasErrors()) {
             return $this->getErrors()->build();
         }
