@@ -10,4 +10,16 @@ use VisionAura\LaravelCore\Traits\Relations;
 class CoreModel extends Model implements RelationInterface
 {
     use HasUuids, Relations;
+
+    /** Get the table associated with the model. */
+    public static function table(): string
+    {
+        return (new static())->getTable();
+    }
+
+    /** Qualify the given column name by the model's table. */
+    public static function qualify(string $column): string
+    {
+        return (new static())->qualifyColumn($column);
+    }
 }
