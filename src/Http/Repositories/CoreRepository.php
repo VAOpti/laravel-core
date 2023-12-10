@@ -13,6 +13,11 @@ class CoreRepository
 
     protected Model $model;
 
+    public function __construct(Model $model)
+    {
+        $this->model = $model;
+    }
+
     protected function simpleStore(Model $model, array $attributes): ?Model
     {
         $model = new $model();

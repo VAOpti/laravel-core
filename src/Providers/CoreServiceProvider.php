@@ -2,6 +2,7 @@
 
 namespace VisionAura\LaravelCore\Providers;
 
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\ServiceProvider;
@@ -20,9 +21,7 @@ class CoreServiceProvider extends ServiceProvider
             $controllerString = $controller;
 
             if (($controller = new $controller()) instanceof CoreController) {
-                if (isset($controller->repository) && isset($controller->request)) {
-                    $repository = new $controller->repository();
-
+                if (isset($controller->request)) {
                     $uri = "$name";
                     $key = Str::of($name)->singular()->value();
                     $selfUri = "$name/{{$key}}";
@@ -39,7 +38,13 @@ class CoreServiceProvider extends ServiceProvider
                         Route::get("$name/{{$key}}/relationships/{relation}", "{$controllerString}@indexRelation");
                     }
 
-                    if (is_subclass_of($repository, CoreRepository::class)) {
+                    if ((isset($controller->model) && ($model = new $controller->model()) instanceof Model)
+                        && (isset($controller->repository) && ($repository = new $controller->repository($model)) instanceof CoreRepository)
+                    ) {
+                        app()->bind($controller->repository, function () use ($controller, $model) {
+                            return new $controller->repository($model);
+                        });
+
                         if (method_exists($repository, 'store')) {
                             Route::post($uri, "{$controller->repository}@store");
                         }

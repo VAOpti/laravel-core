@@ -150,7 +150,7 @@ class CoreController extends Controller
             throw new ClassNotFoundError("The class $property does not exist.", $invalidPropertyException);
         }
 
-        if (! is_subclass_of((new $property()), $subClassOf)) {
+        if (! is_a($property, $subClassOf, true)) {
             throw $invalidPropertyException;
         }
     }
