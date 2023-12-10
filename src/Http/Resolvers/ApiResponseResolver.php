@@ -10,6 +10,7 @@ use VisionAura\LaravelCore\Http\Enums\QueryTypeEnum;
 use VisionAura\LaravelCore\Http\Requests\CoreRequest;
 use VisionAura\LaravelCore\Http\Resources\GenericCollection;
 use VisionAura\LaravelCore\Http\Resources\GenericResource;
+use VisionAura\LaravelCore\Support\Facades\RequestFilter;
 
 class ApiResponseResolver
 {
@@ -40,7 +41,7 @@ class ApiResponseResolver
     {
         if (isset($this->requestId)) {
             $resource = $this->resolveResourceFromId($this->requestId);
-        } elseif (($this->queryResolver->filter->hasFilter || $this->queryResolver->attributes->hasHiddenAttributes)) {
+        } elseif ((RequestFilter::hasFilter() || $this->queryResolver->attributes->hasHiddenAttributes)) {
             if (! $this->model->getAttribute($this->model->getKeyName())) {
                 throw new CoreException(ErrorBag::make(__('core::errors.Server error'),
                     'The model passed for resolving did not contain the primary key.')
@@ -63,7 +64,7 @@ class ApiResponseResolver
 
     protected function resolveResourceFromId(string $id): Model
     {
-        $this->queryResolver->filter->addClause(QueryTypeEnum::WHERE, FilterOperatorsEnum::EQUALS, $id, $this->model->getKeyName());
+        RequestFilter::addClause(QueryTypeEnum::WHERE, FilterOperatorsEnum::EQUALS, $id, $this->model->getKeyName());
         $resourceQuery = $this->model::select($this->queryResolver->attributes());
 
         return $this->queryResolver->resolve($resourceQuery, true);

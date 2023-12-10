@@ -14,6 +14,7 @@ use VisionAura\LaravelCore\Exceptions\CoreException;
 use VisionAura\LaravelCore\Exceptions\ErrorBag;
 use VisionAura\LaravelCore\Http\Requests\CoreRequest;
 use VisionAura\LaravelCore\Interfaces\RelationInterface;
+use VisionAura\LaravelCore\Support\Facades\RequestFilter;
 
 final class QueryResolver
 {
@@ -29,8 +30,6 @@ final class QueryResolver
 
     protected SortResolver $sort;
 
-    public FilterResolver $filter;
-
     /**
      * @throws CoreException
      */
@@ -44,7 +43,6 @@ final class QueryResolver
         $this->pagination = new PaginateResolver($model, $request);
         $this->attributes = new AttributeResolver($model, $request);
         $this->sort = new SortResolver($model, $request);
-        $this->filter = new FilterResolver($model, $request);
 
         $name = pluralizeModel($this->model);
 
@@ -120,7 +118,7 @@ final class QueryResolver
      */
     protected function resolveQuery(Builder $query, bool $first = false): self
     {
-        $query = $this->filter->bind($query, $this->filter->get());
+        $query = RequestFilter::bind($query, RequestFilter::get());
         $query = $this->sort->bind($query);
 
         $with = [];
@@ -149,8 +147,8 @@ final class QueryResolver
 
                 $query->selectRaw($selectedAttrs($include));
 
-                if ($clauses = $this->filter->getRelations($include)) {
-                    $query = $this->filter->bind($query, $clauses);
+                if ($clauses = RequestFilter::getRelations($include)) {
+                    $query = RequestFilter::bind($query, $clauses);
                 }
 
                 return $query;

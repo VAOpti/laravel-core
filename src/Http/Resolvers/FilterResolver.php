@@ -26,13 +26,13 @@ class FilterResolver
     /** @var FilterClauseStruct[] */
     protected array $clauses = [];
 
-    public bool $hasFilter = false;
+    protected bool $hasFilter = false;
 
-    public function __construct(Model&RelationInterface $model, CoreRequest $request)
+    public function __construct(Model&RelationInterface $model)
     {
         $this->model = $model;
 
-        $filters = array_filter($request->all('filter'));
+        $filters = array_filter(request()->all('filter'));
 
         if (! Arr::has($filters, 'filter')) {
             return;
@@ -99,6 +99,11 @@ class FilterResolver
         $this->clauses[] = new FilterClauseStruct($type, $value, $relation, $attribute, $operator);
 
         return $this;
+    }
+
+    public function hasFilter(): bool
+    {
+        return $this->hasFilter;
     }
 
     /** @return array{}|FilterClauseStruct[] */

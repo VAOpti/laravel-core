@@ -2,6 +2,7 @@
 
 namespace VisionAura\LaravelCore\Http\Controllers;
 
+use Illuminate\Contracts\Foundation\Application;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use Illuminate\Foundation\Validation\ValidatesRequests;
@@ -15,6 +16,7 @@ use VisionAura\LaravelCore\Exceptions\CoreException;
 use VisionAura\LaravelCore\Exceptions\InvalidStatusCodeException;
 use VisionAura\LaravelCore\Http\Repositories\CoreRepository;
 use VisionAura\LaravelCore\Http\Requests\CoreRequest;
+use VisionAura\LaravelCore\Http\Resolvers\FilterResolver;
 use VisionAura\LaravelCore\Http\Resources\GenericCollection;
 use VisionAura\LaravelCore\Http\Resources\GenericResource;
 use VisionAura\LaravelCore\Interfaces\RelationInterface;
@@ -34,14 +36,8 @@ class CoreController extends Controller
     /** @var class-string $request */
     public string $request;
 
-    /**
-     * @throws CoreException
-     * @throws InvalidStatusCodeException
-     */
-    public function index(CoreRequest $request): GenericCollection|JsonResponse
+    public function __construct()
     {
-        $request = $this->resolveRequestFrom($request);
-
         try {
             $this->validateProperty($this->model ?? null, Model::class);
         } catch (InvalidPropertyOrMethod $error) {
@@ -49,6 +45,23 @@ class CoreController extends Controller
         } catch (ClassNotFoundError $error) {
             $this->getErrors()->push(__('core::errors.Server error'), $error->getMessage());
         }
+
+        $this->checkErrors();
+
+        app()->bind('filter', function () {
+            return new FilterResolver(new $this->model());
+        });
+    }
+
+    /**
+     * @throws CoreException
+     * @throws InvalidStatusCodeException
+     */
+    public function index(CoreRequest $request): GenericCollection|JsonResponse
+    {
+        $this->authorize('viewAny', $this->model);
+
+        $request = $this->resolveRequestFrom($request);
 
         $this->checkErrors();
 
