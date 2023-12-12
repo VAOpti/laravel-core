@@ -14,7 +14,12 @@ class CoreServiceProvider extends ServiceProvider
 {
     public function register(): void
     {
-        $this->loadTranslationsFrom(__DIR__ . '/../lang', 'core');
+        $this->loadTranslationsFrom(__DIR__.'/../lang', 'core');
+
+        $this->publishes([
+            __DIR__.'/../config/permission.php' => config_path('permission.php'),
+            __DIR__.'/../database/migrations' => database_path('migrations'),
+        ]);
 
         /* Macro's */
         Route::macro('jsonAPI', function ($name, $controller) {
@@ -84,7 +89,7 @@ class CoreServiceProvider extends ServiceProvider
                     if (is_array($subVal)) {
                         $recursive = Arr::flattenSingle([is_int($subKey) ? $key : "$key.$subKey" => $subVal]);
                         $result = array_merge($result, $recursive);
-                        unset($val[$subKey]);
+                        unset($val[ $subKey ]);
 
                         continue;
                     }
