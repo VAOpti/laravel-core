@@ -33,14 +33,20 @@ class CoreServiceProvider extends ServiceProvider
 
                     if (method_exists($controller, 'index')) {
                         Route::get($uri, "{$controllerString}@index");
+
+                        return;
                     }
 
                     if (method_exists($controller, 'show')) {
                         Route::get($selfUri, "{$controllerString}@show");
+
+                        return;
                     }
 
                     if (method_exists($controller, 'indexRelation')) {
                         Route::get("$name/{{$key}}/relationships/{relation}", "{$controllerString}@indexRelation");
+
+                        return;
                     }
 
                     if ((isset($controller->model) && ($model = new $controller->model()) instanceof Model)
@@ -52,14 +58,20 @@ class CoreServiceProvider extends ServiceProvider
 
                         if (method_exists($repository, 'store')) {
                             Route::post($uri, "{$controller->repository}@store");
+
+                            return;
                         }
 
                         if (method_exists($repository, 'update')) {
                             Route::match(['put', 'patch'], $selfUri, "{$controller->repository}@update");
+
+                            return;
                         }
 
                         if (method_exists($repository, 'delete')) {
                             Route::delete($selfUri, "{$controller->repository}@delete");
+
+                            return;
                         }
 
                         if (method_exists($controller, 'delete')) {
