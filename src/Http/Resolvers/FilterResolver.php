@@ -7,7 +7,6 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\Relation;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Str;
-use Nette\NotImplementedException;
 use Symfony\Component\HttpFoundation\Response;
 use VisionAura\LaravelCore\Casts\CastPrimitives;
 use VisionAura\LaravelCore\Exceptions\CoreException;
@@ -15,7 +14,6 @@ use VisionAura\LaravelCore\Exceptions\ErrorBag;
 use VisionAura\LaravelCore\Exceptions\InvalidRelationException;
 use VisionAura\LaravelCore\Http\Enums\FilterOperatorsEnum;
 use VisionAura\LaravelCore\Http\Enums\QueryTypeEnum;
-use VisionAura\LaravelCore\Http\Requests\CoreRequest;
 use VisionAura\LaravelCore\Interfaces\RelationInterface;
 use VisionAura\LaravelCore\Structs\FilterClauseStruct;
 
@@ -23,7 +21,7 @@ class FilterResolver
 {
     protected Model&RelationInterface $model;
 
-    /** @var FilterClauseStruct[] */
+    /** @var array<int, string|FilterClauseStruct> */
     protected array $clauses = [];
 
     protected bool $hasFilter = false;
@@ -54,13 +52,20 @@ class FilterResolver
                 }
 
                 $operator = $this->resolveOperator($queryOperator, $relation);
+
                 if (! $operator) {
                     throw new CoreException(ErrorBag::make(
                         __('core::errors.Invalid request'),
                         "An invalid operator '{$queryOperator}' was used on a filter in the query.",
-                        'filter['.($relation ? "$relation." : '')."$attribute][".(($queryType ?? null) ? "$queryType." : '')."{$queryOperator}]={$queryValue}",
+                        'filter['.($relation ? "$relation." : '')."$attribute][".(isset($queryType) ? "$queryType." : '')."{$queryOperator}]={$queryValue}",
                         Response::HTTP_BAD_REQUEST
                     )->bag);
+                }
+
+                if (is_string($operator)) { // Filter is a scope.
+                    $this->addClause($operator, null, $value);
+
+                    continue;
                 }
 
                 $type = $this->resolveQueryType($value, $operator, $queryType ?? null);
@@ -90,12 +95,18 @@ class FilterResolver
     }
 
     public function addClause(
-        QueryTypeEnum $type,
-        string|FilterOperatorsEnum $operator,
+        string|QueryTypeEnum $type,
+        FilterOperatorsEnum|null $operator,
         mixed $value,
         ?string $attribute = null,
         ?string $relation = null
     ): self {
+        if (is_string($type)) {
+            $this->clauses[ $type ] = $value;
+
+            return $this;
+        }
+
         $this->clauses[] = new FilterClauseStruct($type, $value, $relation, $attribute, $operator);
 
         return $this;
@@ -106,25 +117,13 @@ class FilterResolver
         return $this->hasFilter;
     }
 
-    /** @return array{}|FilterClauseStruct[] */
+    /** @return array{}|array<int, string|FilterClauseStruct> */
     public function get(): array
     {
         return $this->clauses;
     }
 
-    /**
-     * @return array{}|FilterClauseStruct[]
-     * @deprecated Only get() seems necessary. All filters are done on the main resource level, not relation level.
-     *
-     */
-    public function getMain(): array
-    {
-        return Arr::where($this->clauses, function (FilterClauseStruct $args) {
-            return ($args->relation === null) || ($args->attribute === null && $args->relation !== null);
-        });
-    }
-
-    /** @return array{}|FilterClauseStruct[] */
+    /** @return array{}|array<int, string|FilterClauseStruct> */
     public function getRelations(?string $relation = null): array
     {
         return Arr::where($this->clauses, function (FilterClauseStruct $args) use ($relation) {
@@ -137,7 +136,7 @@ class FilterResolver
     /**
      * Takes a Builder or a Relation (usually from a whereHas() function) and adds the clauses to the query.
      *
-     * @param  array{}|FilterClauseStruct[]  $clauses
+     * @param  array{}|array<int, string|FilterClauseStruct>  $clauses
      */
     public function bind(Builder|Relation $query, array $clauses): Builder|Relation
     {
@@ -183,25 +182,20 @@ class FilterResolver
         });
     }
 
-    /** @param  array{}|FilterClauseStruct[]  $clauses */
+    /** @param  array{}|array<int, string|FilterClauseStruct>  $clauses */
     private function bindBuilderQuery(Builder $query, array $clauses): Builder
     {
-        foreach ($clauses as $clause) {
-            if ($clause->relation !== null && $clause->attribute === null) {
-                $where = $clause->value ? 'whereHas' : 'doesntHave';
-                $query->{$where}($clause->relation);
+        foreach ($clauses as $index => $clause) {
+            if (is_string($index)) {
+                // Operator is a scope function
+                $this->attachScope($query, $index, $clause);
 
                 continue;
             }
 
-            if (is_string($clause->operator)) {
-                // Operator is a scope function
-                if ($clause->relation) {
-                    throw new NotImplementedException('Can\'t use scope functions on relations yet.', Response::HTTP_NOT_IMPLEMENTED);
-                }
-
-                // TODO: Check if scope actually exists.
-                $query->{$clause->operator}();
+            if ($clause->relation !== null && $clause->attribute === null) {
+                $where = $clause->value ? 'whereHas' : 'doesntHave';
+                $query->{$where}($clause->relation);
 
                 continue;
             }
@@ -220,10 +214,17 @@ class FilterResolver
         return $query;
     }
 
-    /** @param  array{}|FilterClauseStruct[]  $clauses */
+    /** @param  array{}|array<int, string|FilterClauseStruct>  $clauses */
     private function bindRelationQuery(Relation $query, array $clauses): Relation
     {
-        foreach ($clauses as $clause) {
+        foreach ($clauses as $index => $clause) {
+            if (is_string($index)) {
+                // Operator is a scope function
+                $this->attachScope($query, $index, $clause);
+
+                continue;
+            }
+
             if ($clause->attribute === null) {
                 continue;
             }
@@ -242,15 +243,25 @@ class FilterResolver
         return $query;
     }
 
-    private function attachWhereClause(Builder|Relation &$query, FilterClauseStruct $clause): void
+    private function attachWhereClause(Builder|Relation &$query, FilterClauseStruct $clause): self
     {
         match ($clause->type) {
             QueryTypeEnum::WHERE, QueryTypeEnum::OR_WHERE, QueryTypeEnum::WHERE_NOT, QueryTypeEnum::OR_WHERE_NOT
             => $query->{$clause->type->value}($clause->attribute, $clause->operator->toOperator(), $clause->resolveValue()),
             QueryTypeEnum::WHERE_IN, QueryTypeEnum::OR_WHERE_IN, QueryTypeEnum::WHERE_NOT_IN, QueryTypeEnum::OR_WHERE_NOT_IN
             => $query->{$clause->type->value}($clause->attribute, $clause->resolveValue()),
-            default => throw new \Exception('Unhandled where clause')
         };
+
+        return $this;
+    }
+
+    private function attachScope(Builder|Relation &$query, string $scope, mixed $value): self
+    {
+        if (method_exists($this->model, "scope{$scope}")) {
+            $query->{$scope}($value);
+        }
+
+        return $this;
     }
 
     /**
