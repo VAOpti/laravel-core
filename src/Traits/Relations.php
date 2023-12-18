@@ -119,7 +119,7 @@ trait Relations
         }
 
         if (method_exists($this->$relation(), 'getOwnerKeyName')) {
-            return $this->$relation()->getOwnerKeyName();
+            return [$this->$relation()->getOwnerKeyName(), $foreignKey];
         }
 
         return $this->$relation()->getForeignKeyName();

@@ -5,6 +5,7 @@ namespace VisionAura\LaravelCore\Http\Resources;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 use Illuminate\Http\Resources\Json\ResourceCollection;
+use Illuminate\Support\Arr;
 
 class CoreCollection extends ResourceCollection
 {
@@ -55,10 +56,16 @@ class CoreCollection extends ResourceCollection
                         continue;
                     }
 
-                    $includes[$relation][] = $resourceInclude;
+                    $includes[$relation][$resourceInclude['type'].$resourceInclude['id']] = $resourceInclude;
                 }
             }
         }
+
+        /** @var array<string, array<mixed>> $included */
+        $includes = Arr::map($includes, function (array $included, string $type) {
+            // The includes array contained ids as key, convert those to numeric keys.
+            return array_values($included);
+        });
 
         return $includes;
     }

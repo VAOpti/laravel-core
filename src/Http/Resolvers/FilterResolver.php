@@ -63,7 +63,7 @@ class FilterResolver
                 }
 
                 if (is_string($operator)) { // Filter is a scope.
-                    $this->addClause($operator, null, $value);
+                    $this->addClause(value: $value, type: $operator);
 
                     continue;
                 }
@@ -89,16 +89,16 @@ class FilterResolver
                     }
                 }
 
-                $this->addClause($type, $operator, $value, $attribute, $relation);
+                $this->addClause($value, $type, $attribute, $operator, $relation);
             }
         });
     }
 
     public function addClause(
-        string|QueryTypeEnum $type,
-        FilterOperatorsEnum|null $operator,
         mixed $value,
+        string|QueryTypeEnum $type = QueryTypeEnum::WHERE,
         ?string $attribute = null,
+        FilterOperatorsEnum|null $operator = FilterOperatorsEnum::EQUALS,
         ?string $relation = null
     ): self {
         if (is_string($type)) {
@@ -159,7 +159,8 @@ class FilterResolver
             $equals = array_filter(
                 Arr::wrap($filterSet),
                 (fn(int|string $key) => is_numeric($key) || $key === 'or' || $key === 'equals'),
-                ARRAY_FILTER_USE_KEY);
+                ARRAY_FILTER_USE_KEY
+            );
 
             $equalsSet = [];
             if (in_array('or', array_keys($equals))) {
@@ -194,6 +195,7 @@ class FilterResolver
             }
 
             if ($clause->relation !== null && $clause->attribute === null) {
+                // The clause is probably for a relation. The value is probably true or false.
                 $where = $clause->value ? 'whereHas' : 'doesntHave';
                 $query->{$where}($clause->relation);
 

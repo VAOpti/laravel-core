@@ -84,7 +84,7 @@ final class QueryResolver
         // Hide attributes that were added for the purpose of loading the relationship
         $name = pluralizeModel($this->model);
         if ($this->attributes->getForced($name)) {
-            $this->resolved = Collection::wrap($this->resolved)->transform(function (Model $model) use ($name) {
+            $this->resolved = $this->wrappedResolved()->transform(function (Model $model) use ($name) {
                 return $model->setHidden($this->attributes->getForced($name));
             });
         }
@@ -216,5 +216,14 @@ final class QueryResolver
         }
 
         return $model;
+    }
+
+    private function wrappedResolved(): Collection|LengthAwarePaginator
+    {
+        if ($this->resolved instanceof Model) {
+            return new Collection($this->resolved);
+        }
+
+        return $this->resolved;
     }
 }

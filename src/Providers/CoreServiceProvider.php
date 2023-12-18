@@ -22,63 +22,36 @@ class CoreServiceProvider extends ServiceProvider
         ]);
 
         /* Macro's */
-        Route::macro('jsonAPI', function ($name, $controller) {
+        Route::macro('jsonAPI', function (string $name, string $controller, bool $relationships = false) {
             $controllerString = $controller;
 
-            if (($controller = new $controller()) instanceof CoreController) {
-                if (isset($controller->request)) {
-                    $uri = "$name";
-                    $key = Str::of($name)->singular()->value();
-                    $selfUri = "$name/{{$key}}";
+            $controller = new $controller($relationships);
+            if (! $controller instanceof CoreController || ! isset($controller->request)) {
+                return;
+            }
 
-                    if (method_exists($controller, 'index')) {
-                        Route::get($uri, "{$controllerString}@index");
+            $key = Str::of($name)->singular()->value();
+            $selfUri = "$name/{{$key}}";
 
-                        return;
-                    }
+            // Read routes
+            Route::get($name, "{$controllerString}@index");
+            Route::get($selfUri, "{$controllerString}@show");
 
-                    if (method_exists($controller, 'show')) {
-                        Route::get($selfUri, "{$controllerString}@show");
+            if ($relationships) {
+                Route::get("$selfUri/relationships/{relation}", "{$controllerString}@indexRelation");
+            }
 
-                        return;
-                    }
+            // Write routes
+            if ((isset($controller->model) && ($model = new $controller->model()) instanceof Model)
+                && (isset($controller->repository) && ($repository = new $controller->repository($model)) instanceof CoreRepository)
+            ) {
+                app()->bind($controller->repository, function () use ($controller, $model) {
+                    return new $controller->repository($model);
+                });
 
-                    if (method_exists($controller, 'indexRelation')) {
-                        Route::get("$name/{{$key}}/relationships/{relation}", "{$controllerString}@indexRelation");
-
-                        return;
-                    }
-
-                    if ((isset($controller->model) && ($model = new $controller->model()) instanceof Model)
-                        && (isset($controller->repository) && ($repository = new $controller->repository($model)) instanceof CoreRepository)
-                    ) {
-                        app()->bind($controller->repository, function () use ($controller, $model) {
-                            return new $controller->repository($model);
-                        });
-
-                        if (method_exists($repository, 'store')) {
-                            Route::post($uri, "{$controller->repository}@store");
-
-                            return;
-                        }
-
-                        if (method_exists($repository, 'update')) {
-                            Route::match(['put', 'patch'], $selfUri, "{$controller->repository}@update");
-
-                            return;
-                        }
-
-                        if (method_exists($repository, 'delete')) {
-                            Route::delete($selfUri, "{$controller->repository}@delete");
-
-                            return;
-                        }
-
-                        if (method_exists($controller, 'delete')) {
-                            Route::delete($selfUri, "{$controllerString}@delete");
-                        }
-                    }
-                }
+                Route::post($name, "{$controller->repository}@store");
+                Route::match(['put', 'patch'], $selfUri, "{$controller->repository}@update");
+                Route::delete($selfUri, "{$controllerString}@delete");
             }
         });
 

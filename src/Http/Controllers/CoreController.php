@@ -9,17 +9,21 @@ use Illuminate\Foundation\Validation\ValidatesRequests;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Routing\Controller;
 use Illuminate\Routing\Redirector;
+use Illuminate\Support\Str;
 use Ramsey\Collection\Exception\InvalidPropertyOrMethod;
 use Symfony\Component\ErrorHandler\Error\ClassNotFoundError;
 use Symfony\Component\HttpFoundation\Response;
 use VisionAura\LaravelCore\Exceptions\CoreException;
+use VisionAura\LaravelCore\Exceptions\InvalidRelationException;
 use VisionAura\LaravelCore\Exceptions\InvalidStatusCodeException;
+use VisionAura\LaravelCore\Http\Enums\QueryTypeEnum;
 use VisionAura\LaravelCore\Http\Repositories\CoreRepository;
 use VisionAura\LaravelCore\Http\Requests\CoreRequest;
 use VisionAura\LaravelCore\Http\Resolvers\FilterResolver;
 use VisionAura\LaravelCore\Http\Resources\GenericCollection;
 use VisionAura\LaravelCore\Http\Resources\GenericResource;
 use VisionAura\LaravelCore\Interfaces\RelationInterface;
+use VisionAura\LaravelCore\Support\Facades\RequestFilter;
 use VisionAura\LaravelCore\Traits\ApiResponse;
 use VisionAura\LaravelCore\Traits\HasErrorBag;
 
@@ -36,10 +40,10 @@ class CoreController extends Controller
     /** @var class-string $request */
     public string $request;
 
-    public function __construct()
+    public function __construct(bool $queriesRelationship = false)
     {
         try {
-            $this->validateProperty($this->model ?? null, Model::class);
+            $this->validateProperty($this->model ?? null, RelationInterface::class);
         } catch (InvalidPropertyOrMethod $error) {
             $this->getErrors()->push(__('core::errors.Server error'), $error->getMessage());
         } catch (ClassNotFoundError $error) {
@@ -48,8 +52,21 @@ class CoreController extends Controller
 
         $this->checkErrors();
 
-        app()->bind('filter', function () {
-            return new FilterResolver(new $this->model());
+        /** @var RelationInterface $model */
+        $model = new $this->model();
+        if ($queriesRelationship) {
+            $uri = Str::of(request()->path());
+            if ($uri->contains('relationships/')) {
+                $relation = $uri->after('relationships/');
+                $relation = $relation->contains('/') ? $relation->before('/')->value() : $relation->value();
+
+                $relation = $model->verifyRelation($relation) ? $relation : null;
+            }
+        }
+
+        $relation ??= null;
+        app()->bind('filter', function () use ($relation) {
+            return new FilterResolver($relation ? (new $this->model())->getRelated($relation) : new $this->model());
         });
     }
 
@@ -73,21 +90,30 @@ class CoreController extends Controller
      */
     public function indexRelation(CoreRequest $request, string $id, string $relation): GenericCollection|JsonResponse
     {
-        if (! ($model = $this->resolveModelFrom($id)) && $this->hasErrors()) {
-            return $this->getErrors()->build();
-        }
+        $model = $this->resolveModelFrom($id);
 
-        if (! $model instanceof RelationInterface && ! $model instanceof Model) {
-            return $this->error(
-                __('core::errors.Server error'),
-                'Can not resolve the provided relation.',
-                code: Response::HTTP_NOT_IMPLEMENTED
+        if (! $model instanceof RelationInterface) {
+            $this->getErrors()->push(
+                title: __('core::errors.Server error'),
+                description: 'Can not resolve the provided relation.',
+                source: request()->path(),
+                status: Response::HTTP_INTERNAL_SERVER_ERROR
             );
         }
 
-        $relation = $model->resolveRelation($relation);
+        $this->checkErrors();
 
-        return new GenericCollection($model->load($relation)->getRelation($relation));
+        $relation = $model->resolveRelation($relation);
+        $related = $model->getRelated($relation)
+            ?: throw new InvalidRelationException(detail: 'The specified relation does not exist.', source: request()->path());
+
+        $this->authorize('viewAny', $related);
+
+        $ids = $model->{$relation}->pluck($related->getKeyName())->all();
+
+        RequestFilter::addClause(value: $ids, type: QueryTypeEnum::WHERE_IN, attribute: $related->getKeyName());
+
+        return $this->apiResponse($related, $request)->collection();
     }
 
     /**

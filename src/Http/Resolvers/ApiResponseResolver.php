@@ -43,9 +43,10 @@ class ApiResponseResolver
             $resource = $this->resolveResourceFromId($this->requestId);
         } elseif ((RequestFilter::hasFilter() || $this->queryResolver->attributes->hasHiddenAttributes)) {
             if (! $this->model->getAttribute($this->model->getKeyName())) {
-                throw new CoreException(ErrorBag::make(__('core::errors.Server error'),
-                    'The model passed for resolving did not contain the primary key.')
-                    ->bag
+                throw new CoreException(
+                    ErrorBag::make(__('core::errors.Server error'),
+                        'The model passed for resolving did not contain the primary key.'
+                    )->bag
                 );
             };
 
@@ -64,7 +65,7 @@ class ApiResponseResolver
 
     protected function resolveResourceFromId(string $id): Model
     {
-        RequestFilter::addClause(QueryTypeEnum::WHERE, FilterOperatorsEnum::EQUALS, $id, $this->model->getKeyName());
+        RequestFilter::addClause(value: $id, type: QueryTypeEnum::WHERE, attribute: $this->model->getKeyName(), operator: FilterOperatorsEnum::EQUALS);
         $resourceQuery = $this->model::select($this->queryResolver->attributes());
 
         return $this->queryResolver->resolve($resourceQuery, true);
