@@ -7,6 +7,13 @@ use VisionAura\LaravelCore\Http\Enums\QueryTypeEnum;
 
 final readonly class FilterClauseStruct
 {
+    /**
+     * @param  QueryTypeEnum        $type
+     * @param  mixed                $value
+     * @param  string|null          $relation
+     * @param  string|null          $attribute
+     * @param  FilterOperatorsEnum  $operator
+     */
     public function __construct(
         public QueryTypeEnum $type,
         public mixed $value,
