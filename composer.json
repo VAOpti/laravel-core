@@ -13,7 +13,8 @@
     "php": "^8.2",
     "laravel/framework": "^10.28",
     "laravel/sanctum": "^3.3",
-    "spatie/laravel-permission": "^6.2"
+    "spatie/laravel-permission": "^6.2",
+    "romanzipp/laravel-model-doc": "^2.1"
   },
   "autoload": {
     "files": [
@@ -30,8 +31,5 @@
         "VisionAura\\LaravelCore\\Providers\\CoreServiceProvider"
       ]
     }
-  },
-  "require-dev": {
-    "romanzipp/laravel-model-doc": "^2.1"
   }
 }
