@@ -33,6 +33,12 @@ class CoreServiceProvider extends ServiceProvider
             $key = Str::of($name)->singular()->value();
             $selfUri = "$name/{{$key}}";
 
+            $controller->setRouteKey($key);
+
+            app()->bind('requestController', function () use ($controller) {
+                return $controller;
+            });
+
             // Read routes
             Route::get($name, "{$controllerString}@index");
             Route::get($selfUri, "{$controllerString}@show");
@@ -46,12 +52,23 @@ class CoreServiceProvider extends ServiceProvider
                 && (isset($controller->repository) && ($repository = new $controller->repository($model)) instanceof CoreRepository)
             ) {
                 app()->bind($controller->repository, function () use ($controller, $model) {
+                    $model = request()->route()->parameter(strtolower($controller->getRouteKey()))
+                        ?? $model;
+
+                    if (is_string($model)) { // The model is not resolved yet and still an id
+                        $model = $controller->resolveModelFrom($model);
+                    }
+
                     return new $controller->repository($model);
                 });
 
                 Route::post($name, "{$controller->repository}@store");
                 Route::match(['put', 'patch'], $selfUri, "{$controller->repository}@update");
                 Route::delete($selfUri, "{$controllerString}@delete");
+
+                if ($relationships) {
+                    Route::match(['put', 'patch'], "$selfUri/relationships/{relation}", "{$controller->repository}@updateRelation");
+                }
             }
         });
 

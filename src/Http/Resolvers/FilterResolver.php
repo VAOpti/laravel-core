@@ -126,7 +126,11 @@ class FilterResolver
     /** @return array{}|array<int, string|FilterClauseStruct> */
     public function getRelations(?string $relation = null): array
     {
-        return Arr::where($this->clauses, function (FilterClauseStruct $args) use ($relation) {
+        $filterClauses = Arr::where($this->clauses, function (mixed $clause) {
+            return $clause instanceof FilterClauseStruct;
+        });
+
+        return Arr::where($filterClauses, function (FilterClauseStruct $args) use ($relation) {
             return $relation
                 ? ($args->relation === $relation && $args->attribute !== null)
                 : ($args->relation !== null && $args->attribute !== null);

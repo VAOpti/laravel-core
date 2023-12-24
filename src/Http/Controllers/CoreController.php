@@ -2,11 +2,13 @@
 
 namespace VisionAura\LaravelCore\Http\Controllers;
 
-use Illuminate\Contracts\Foundation\Application;
+use Illuminate\Auth\Access\AuthorizationException;
+use Illuminate\Contracts\Container\BindingResolutionException;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use Illuminate\Foundation\Validation\ValidatesRequests;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
 use Illuminate\Routing\Redirector;
 use Illuminate\Support\Str;
@@ -40,20 +42,13 @@ class CoreController extends Controller
     /** @var class-string $request */
     public string $request;
 
+    protected string $routeKey = '';
+
     public function __construct(bool $queriesRelationship = false)
     {
-        try {
-            $this->validateProperty($this->model ?? null, RelationInterface::class);
-        } catch (InvalidPropertyOrMethod $error) {
-            $this->getErrors()->push(__('core::errors.Server error'), $error->getMessage());
-        } catch (ClassNotFoundError $error) {
-            $this->getErrors()->push(__('core::errors.Server error'), $error->getMessage());
-        }
+        $model = $this->getModel();
 
-        $this->checkErrors();
-
-        /** @var RelationInterface $model */
-        $model = new $this->model();
+        $relation = null;
         if ($queriesRelationship) {
             $uri = Str::of(request()->path());
             if ($uri->contains('relationships/')) {
@@ -64,15 +59,58 @@ class CoreController extends Controller
             }
         }
 
-        $relation ??= null;
-        app()->bind('filter', function () use ($relation) {
-            return new FilterResolver($relation ? (new $this->model())->getRelated($relation) : new $this->model());
+        app()->bind('filter', function () use ($relation, $model) {
+            return new FilterResolver($relation ? $model->getRelated($relation) : new $this->model());
         });
+    }
+
+    public function getModel(): RelationInterface
+    {
+        try {
+            $this->validateProperty($this->model ?? null, RelationInterface::class);
+        } catch (InvalidPropertyOrMethod $error) {
+            $this->getErrors()->push(__('core::errors.Server error'), $error->getMessage());
+        } catch (ClassNotFoundError $error) {
+            $this->getErrors()->push(__('core::errors.Server error'), $error->getMessage());
+        }
+
+        $repository = $this->getRepository();
+
+        $this->checkErrors();
+
+        return $repository->getModel();
+    }
+
+    public function getRepository(): CoreRepository
+    {
+        try {
+            $this->validateProperty($this->repository ?? null, CoreRepository::class);
+        } catch (InvalidPropertyOrMethod $error) {
+            $this->getErrors()->push(__('core::errors.Server error'), $error->getMessage());
+        } catch (ClassNotFoundError $error) {
+            $this->getErrors()->push(__('core::errors.Server error'), $error->getMessage());
+        }
+
+        $this->checkErrors();
+
+        try {
+            $repository = app($this->repository);
+        } catch (BindingResolutionException $e) {
+            // The repository was not initialized yet.
+            return new $this->repository(new $this->model());
+        }
+
+        return $repository;
+    }
+
+    public function getRequest(): CoreRequest
+    {
+        return $this->resolveRequestFrom(request());
     }
 
     /**
      * @throws CoreException
-     * @throws InvalidStatusCodeException
+     * @throws AuthorizationException|InvalidStatusCodeException
      */
     public function index(CoreRequest $request): GenericCollection|JsonResponse
     {
@@ -87,6 +125,7 @@ class CoreController extends Controller
 
     /**
      * @throws CoreException
+     * @throws AuthorizationException|InvalidStatusCodeException
      */
     public function indexRelation(CoreRequest $request, string $id, string $relation): GenericCollection|JsonResponse
     {
@@ -139,19 +178,49 @@ class CoreController extends Controller
 
     public function delete(string $id): JsonResponse
     {
-        $this->validateProperty($this->repository ?? null, CoreRepository::class);
+        $repository = $this->getRepository();
 
-        if (method_exists($this->repository, 'beforeDelete')) {
-            (new $this->repository())->beforeDelete();
+        if (method_exists($repository, 'beforeDelete')) {
+            $repository->beforeDelete();
         }
 
-        if (! ($model = $this->resolveModelFrom($id)) && $this->hasErrors()) {
+        if (! ($model = $this->resolveModelFrom($id))) {
             return $this->getErrors()->build();
         }
 
         $model->delete();
 
         return response()->json(status: 204);
+    }
+
+    public function resolveModelFrom(string $id): ?Model
+    {
+        try {
+            $this->validateProperty($this->model ?? null, Model::class);
+        } catch (InvalidPropertyOrMethod $error) {
+            $this->getErrors()->push(__('core::errors.Server error'), $error->getMessage());
+
+            return null;
+        } catch (ClassNotFoundError $error) {
+            $this->getErrors()->push(__('core::errors.Server error'), $error->getMessage());
+
+            return null;
+        }
+
+        /** @var Model $model */
+        $model = new $this->model();
+
+        return $model->where($model->getKeyName(), $id)->firstOrFail();
+    }
+
+    public function getRouteKey(): string
+    {
+        return $this->routeKey;
+    }
+
+    public function setRouteKey(string $name): void
+    {
+        $this->routeKey = $name;
     }
 
     /**
@@ -181,39 +250,21 @@ class CoreController extends Controller
         }
     }
 
-    private function resolveModelFrom(string $id): ?Model
-    {
-        try {
-            $this->validateProperty($this->model ?? null, Model::class);
-        } catch (InvalidPropertyOrMethod $error) {
-            $this->getErrors()->push(__('core::errors.Server error'), $error->getMessage());
-
-            return null;
-        } catch (ClassNotFoundError $error) {
-            $this->getErrors()->push(__('core::errors.Server error'), $error->getMessage());
-
-            return null;
-        }
-
-        /** @var Model $model */
-        $model = new $this->model();
-
-        return $model->where($model->getKeyName(), $id)->firstOrFail();
-    }
-
-    private function resolveRequestFrom(CoreRequest $baseRequest): ?CoreRequest
+    /**
+     * @throws CoreException
+     * @throws InvalidStatusCodeException
+     */
+    private function resolveRequestFrom(CoreRequest|Request $baseRequest): CoreRequest
     {
         try {
             $this->validateProperty($this->request ?? null, CoreRequest::class);
         } catch (InvalidPropertyOrMethod $error) {
             $this->getErrors()->push(__('core::errors.Server error'), $error->getMessage());
-
-            return null;
         } catch (ClassNotFoundError $error) {
             $this->getErrors()->push(__('core::errors.Server error'), $error->getMessage());
-
-            return null;
         }
+
+        $this->checkErrors();
 
         /** @var CoreRequest $request */
         $request = $this->request::createFrom($baseRequest);
