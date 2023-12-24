@@ -18,6 +18,7 @@ class CoreServiceProvider extends ServiceProvider
 
         $this->publishes([
             __DIR__.'/../config/permission.php' => config_path('permission.php'),
+            __DIR__.'/../config/model-doc.php' => config_path('model-doc.php'),
             __DIR__.'/../database/migrations' => database_path('migrations'),
         ]);
 
