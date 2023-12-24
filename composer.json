@@ -30,5 +30,8 @@
         "VisionAura\\LaravelCore\\Providers\\CoreServiceProvider"
       ]
     }
+  },
+  "require-dev": {
+    "romanzipp/laravel-model-doc": "^2.1"
   }
 }

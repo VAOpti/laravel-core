@@ -7,6 +7,9 @@ use Illuminate\Database\Eloquent\Model;
 use VisionAura\LaravelCore\Interfaces\RelationInterface;
 use VisionAura\LaravelCore\Traits\Relations;
 
+/**
+ * @mixin \Illuminate\Contracts\Database\Eloquent\Builder
+ */
 class CoreModel extends Model implements RelationInterface
 {
     use HasUuids, Relations;
