@@ -4,6 +4,7 @@ namespace VisionAura\LaravelCore\Http\Resolvers;
 
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\MorphTo;
 use Illuminate\Database\Eloquent\Relations\Relation;
 use Illuminate\Database\QueryException;
 use Illuminate\Pagination\LengthAwarePaginator;
@@ -123,6 +124,12 @@ final class QueryResolver
 
         $with = [];
         foreach ($this->includes->relations as $include) {
+            if ($this->model->{$include}() instanceof MorphTo) {
+                $with[] = $include;
+
+                continue;
+            }
+
             $callback = function (Relation $query) use ($include) {
                 $selectedAttrs = function ($include): string {
                     $relevantTable = $include;

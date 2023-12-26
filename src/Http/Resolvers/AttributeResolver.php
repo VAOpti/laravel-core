@@ -116,6 +116,10 @@ class AttributeResolver
     {
         $visible = $this->getVisibleAttributes($name);
 
+        if (in_array('*', $visible)) {
+            return $this;
+        }
+
         foreach (Arr::wrap($attributes) as $attribute) {
             if (! in_array($attribute, $visible)) {
                 $this->force[ $name ][] = $attribute;

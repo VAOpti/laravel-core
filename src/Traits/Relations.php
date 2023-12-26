@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasOneOrMany;
+use Illuminate\Database\Eloquent\Relations\MorphOneOrMany;
 use Illuminate\Database\Eloquent\Relations\Relation;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Str;
@@ -139,7 +140,6 @@ trait Relations
             return new ParentChildRelationStruct($this->$relation()->getQualifiedParentKeyName(), $this->$relation()->getQualifiedForeignKeyName());
         }
 
-        // TODO: The morph type?
         return null;
     }
 
@@ -154,9 +154,10 @@ trait Relations
         $relation = $this->{$relation}();
 
         return match (true) {
-            ($relation instanceof HasOneOrMany) => $relation->getRelated(),
             ($relation instanceof BelongsTo),
-            ($relation instanceof BelongsToMany) => $this,
+            ($relation instanceof BelongsToMany),
+            ($relation instanceof MorphOneOrMany) => $this,
+            ($relation instanceof HasOneOrMany) => $relation->getRelated(),
         };
     }
 }
