@@ -53,6 +53,8 @@ class ApiResponseResolver
             $resource = $this->resolveResourceFromId($this->model->getAttribute($this->model->getKeyName()));
         }
 
+        // If there is no filter or fields attribute is set, we don't have to pass it through the solver;
+        // TODO: Actually we should, sorting also needs to be solved.
         return new GenericResource($resource ?? $this->model);
     }
 

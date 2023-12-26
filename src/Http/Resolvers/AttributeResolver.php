@@ -147,6 +147,13 @@ class AttributeResolver
         array|string $attribute,
         ?string $nestedKey = null
     ): void {
+        // Check if the relation is on the parent (e.g. morphTo relations)
+        if ($parent->{$relation}()->getRelated()->is($owner)) {
+            $this->setForced($nestedKey ?? $parentKey, $attribute);
+
+            return;
+        }
+
         // Check if the owner of the foreign key is the child.
         if ($parent->{$relation}()->getRelated() instanceof $owner) {
             $this->setForced($nestedKey ?? $relation, $attribute);

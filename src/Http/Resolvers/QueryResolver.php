@@ -91,7 +91,6 @@ final class QueryResolver
         }
 
         if ($first && $this->resolved instanceof Collection) {
-            $this->resolved = $this->resolved->firstOrFail();
         }
 
         return $this->resolved;
@@ -170,7 +169,6 @@ final class QueryResolver
             if ($this->pagination->hasPagination) {
                 $this->resolved = $query->paginate(perPage: $this->pagination->getPerPage(), page: $this->pagination->getPage());
             } elseif ($first) {
-                $this->resolved = $query->firstOrFail();
             } else {
                 $this->resolved = $query->get();
             }
@@ -207,6 +205,11 @@ final class QueryResolver
         foreach ($hiddenAttrs as $hiddenAttr) {
             /** @var Collection $relationCollection */
             $relationCollection = $model->getRelation($hiddenAttr);
+
+            if (! $relationCollection) {
+                continue;
+            }
+
             $relationCollection->each(function (Model $model) use ($hiddenAttr) {
                 return $model->setHidden($this->attributes->getForced($hiddenAttr));
             });
@@ -228,7 +231,7 @@ final class QueryResolver
     private function wrappedResolved(): Collection|LengthAwarePaginator
     {
         if ($this->resolved instanceof Model) {
-            return new Collection($this->resolved);
+            return Collection::wrap($this->resolved);
         }
 
         return $this->resolved;
