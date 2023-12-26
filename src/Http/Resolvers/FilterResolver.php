@@ -28,6 +28,16 @@ class FilterResolver
 
     public function __construct(Model&RelationInterface $model)
     {
+        $typoFilters = array_filter(request()->all('filters'));
+
+        if ($typoFilters) {
+            throw new CoreException(ErrorBag::make(
+                title: 'Typo in filter parameter',
+                description: 'An unknown parameter with the name \'filters\' was passed. Did you mean \'filter\'?',
+                status: Response::HTTP_BAD_REQUEST
+            )->bag);
+        }
+
         $this->model = $model;
 
         $filters = array_filter(request()->all('filter'));

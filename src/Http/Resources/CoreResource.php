@@ -41,8 +41,14 @@ class CoreResource extends JsonResource
     /**
      * Transform the resource into an array.
      *
+     * @return array<string, mixed>|null
      */
+    public function toArray(Request $request): ?array
     {
+        if ($this->{$this->resource->getKeyName()} === null) {
+            return null;
+        }
+
         return [
             'type'          => $this->type,
             'id'            => $this->{$this->resource->getKeyName()},
@@ -55,6 +61,7 @@ class CoreResource extends JsonResource
     /** @inheritdoc */
     public function with(Request $request): array
     {
+        if (! array_filter($this->includes)) {
             return [];
         }
 

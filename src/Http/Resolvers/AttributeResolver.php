@@ -6,6 +6,9 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\Schema;
 use Symfony\Component\HttpFoundation\Exception\BadRequestException;
+use Symfony\Component\HttpFoundation\Response;
+use VisionAura\LaravelCore\Exceptions\CoreException;
+use VisionAura\LaravelCore\Exceptions\ErrorBag;
 use VisionAura\LaravelCore\Http\Requests\CoreRequest;
 use VisionAura\LaravelCore\Interfaces\RelationInterface;
 
@@ -22,9 +25,19 @@ class AttributeResolver
     {
         try {
             $fields = $request->query->get('fields') ?? [];
+            $typoFields = $request->query->get('field') ?? [];
             $fields = [$model->getTable() => $fields];
         } catch (BadRequestException $e) {
             $fields = $request->query->all('fields') ?? [];
+            $typoFields = $request->query->all('field') ?? [];
+        }
+
+        if (array_filter($typoFields)) {
+            throw new CoreException(ErrorBag::make(
+                title: 'Typo in filter parameter',
+                description: 'An unknown parameter with the name \'field\' was passed. Did you mean \'fields\'?',
+                status: Response::HTTP_BAD_REQUEST
+            )->bag);
         }
 
         $fields = array_filter($fields);

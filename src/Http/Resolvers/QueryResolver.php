@@ -91,6 +91,7 @@ final class QueryResolver
         }
 
         if ($first && $this->resolved instanceof Collection) {
+            $this->resolved = $this->resolved->first() ?? $this->model;
         }
 
         return $this->resolved;
@@ -169,6 +170,7 @@ final class QueryResolver
             if ($this->pagination->hasPagination) {
                 $this->resolved = $query->paginate(perPage: $this->pagination->getPerPage(), page: $this->pagination->getPage());
             } elseif ($first) {
+                $this->resolved = $query->first() ?? $this->model;
             } else {
                 $this->resolved = $query->get();
             }
