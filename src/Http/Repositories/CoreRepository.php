@@ -70,10 +70,11 @@ class CoreRepository
         return $this->model->fresh();
     }
 
-    protected function make(Model $model, CoreRequest $request): self
+    /** @param  array<mixed>  $attributes */
+    protected function make(Model $model, array $attributes): self
     {
         $this->model = new $model();
-        $this->model->fill($request->validated());
+        $this->model->fill($attributes);
 
         return $this;
     }

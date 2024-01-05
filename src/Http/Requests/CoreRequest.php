@@ -4,30 +4,59 @@ namespace VisionAura\LaravelCore\Http\Requests;
 
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Support\Arr;
+use Illuminate\Support\Str;
 use VisionAura\LaravelCore\Rules\ExistsRelationId;
 use VisionAura\LaravelCore\Rules\ValidRelation;
 
 class CoreRequest extends FormRequest
 {
     /** @var array<string, string[]> $rules */
-    private array $rules = [];
+    private array $rules = [
+        'data'            => ['required', 'array'],
+        'data.type'       => ['required', 'string'],
+        'data.attributes' => ['required', 'array'],
+    ];
+
+    private array $relationshipRules = [
+        'data.relationships'        => ['required', 'array'],
+        'data.relationships.*.data' => ['required', 'array'],
+        'data.relationships.*.type' => ['required', 'string'],
+        'data.relationships.*.id'   => ['required', 'string'],
+    ];
+
+    /** @inheritdoc */
+    public function validated($key = null, $default = null): mixed
+    {
+        $key = $key ? "data.attributes.{$key}" : 'data.attributes';
+
+        return data_get($this->getValidatorInstance()->validated(), $key, $default);
+    }
 
     public function prepareForValidation(): void
     {
         if (request()->isMethod(self::METHOD_POST)) {
-            $this->rules = $this->storeRules();
+            $storeRules = Arr::prependKeysWith($this->storeRules(), 'data.attributes.');
+            $this->rules = [...$this->rules, ...$storeRules];
 
             return;
         }
 
-        if (request()->isMethod(self::METHOD_PATCH) || $this->isMethod(self::METHOD_PUT)) {
+        if (request()->isMethod(self::METHOD_PATCH) || request()->isMethod(self::METHOD_PUT)) {
+            $this->rules[ 'data.id' ] = ['required', 'string'];
+
             if (str_contains(request()->path(), 'relationships')) {
+                // TODO: updating relations does not work yet.
+                unset($this->rules[ 'data.attributes' ]);
+                $this->rules = [...$this->rules, ...$this->relationshipRules];
+                $updateRules = Arr::prependKeysWith($this->updateRules(), 'data.relationships.');
                 $this->rules = $this->updateRelationRules();
 
                 return;
             }
 
-            $this->rules = $this->updateRules();
+            $updateRules = Arr::prependKeysWith($this->updateRules(), 'data.attributes.');
+            $this->rules = [...$this->rules, ...$updateRules];
 
             return;
         }
@@ -73,20 +102,20 @@ class CoreRequest extends FormRequest
     public function updateRelationRules(): array
     {
         $rules = [
-            'data.type' => ['required', 'string', new ValidRelation],
-            'data.id'   => ['required', 'string'],
+            'type' => ['required', 'string', new ValidRelation],
+            'id'   => ['required', 'string', new ExistsRelationId],
         ];
 
-        if ($this->request->has('data')) {
-            $root = $this->request->all('data');
-            if (count($root) !== count($root, COUNT_RECURSIVE)) {
-                // data is a multidimensional array, replace the given rules
-                $rules = [
-                    'data.*.type' => ['required', 'string', new ValidRelation],
-                    'data.*.id'   => ['required', 'string', new ExistsRelationId],
-                ];
+        $prepend = Str::of('data.relationships.*.data.');
+        if ($this->request->has('data.relationships')) {
+            $payload = $this->request->all('data');
+            if (count($payload) !== count($payload, COUNT_RECURSIVE)) {
+                // data is a multidimensional array
+                $prepend->append('*.');
             }
         }
+
+        $rules = Arr::prependKeysWith($rules, $prepend);
 
         return [...['data' => ['required', 'array'], ...$rules]];
     }
