@@ -4,6 +4,7 @@ namespace VisionAura\LaravelCore\Interfaces;
 
 use Illuminate\Database\Eloquent\Model;
 use VisionAura\LaravelCore\Exceptions\CoreException;
+use VisionAura\LaravelCore\Support\Relations\MorphTarget;
 
 interface RelationInterface
 {
@@ -52,4 +53,13 @@ interface RelationInterface
      * @return string[]|string|null
      */
     public function resolveDependentKeys(string $relation): array|string|null;
+
+    /**
+     * A (for now) dummy relation that can be specified on the morphable class so the various relationships can be typed.
+     *
+     * @param  class-string  $target
+     *
+     * @return MorphTarget
+     */
+    public function morphTarget(string $target): MorphTarget;
 }

@@ -15,6 +15,7 @@ use VisionAura\LaravelCore\Exceptions\CoreException;
 use VisionAura\LaravelCore\Exceptions\ErrorBag;
 use VisionAura\LaravelCore\Interfaces\RelationInterface;
 use VisionAura\LaravelCore\Structs\ParentChildRelationStruct;
+use VisionAura\LaravelCore\Support\Relations\MorphTarget;
 
 trait Relations
 {
@@ -159,5 +160,10 @@ trait Relations
             ($relation instanceof MorphOneOrMany) => $this,
             ($relation instanceof HasOneOrMany) => $relation->getRelated(),
         };
+    }
+
+    public function morphTarget(string $target): MorphTarget
+    {
+        return new MorphTarget($target);
     }
 }
