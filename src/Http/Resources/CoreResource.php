@@ -5,6 +5,7 @@ namespace VisionAura\LaravelCore\Http\Resources;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
+use Illuminate\Support\Arr;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
 
@@ -76,7 +77,7 @@ class CoreResource extends JsonResource
         $includes = [];
 
         /**
-         * @var string  $name
+         * @var string                  $name
          * @var Model[]|Collection|null $loadedRelations
          */
         foreach ($model->getRelations() as $name => $loadedRelations) {
@@ -101,7 +102,7 @@ class CoreResource extends JsonResource
 
             $id = $this->resource->getKeyName();
             if (array_key_exists($id, $this->attributes)) {
-                unset($this->attributes[$id]);
+                unset($this->attributes[ $id ]);
             }
 
             return $this;
@@ -124,8 +125,8 @@ class CoreResource extends JsonResource
     protected function setTimestamps(): self
     {
         $datetimes = new Collection(['created_at', 'updated_at']);
-        $datetimes->push(...array_keys($this->resource->getCasts()))
-            ->where(fn(string $val) => $val === 'datetime');
+        $dateTimeCasts = Arr::where($this->resource->getCasts(), fn(string $val) => $val === 'datetime');
+        $datetimes->push(...array_keys($dateTimeCasts));
 
         $datetimes = $datetimes->reject(function (string $val) {
             return ! array_key_exists($val, $this->attributes);
@@ -197,7 +198,7 @@ class CoreResource extends JsonResource
         foreach (static::mapIncludes($this->resource) as $relation => $resourceIncludes) {
             foreach ($resourceIncludes as $resourceInclude) {
                 if (! array_key_exists($relation, $this->includes) && ! $resourceInclude) {
-                    $this->includes[$relation] = [];
+                    $this->includes[ $relation ] = [];
 
                     continue;
                 }
@@ -206,7 +207,7 @@ class CoreResource extends JsonResource
                     continue;
                 }
 
-                $this->includes[$relation][] = $resourceInclude;
+                $this->includes[ $relation ][] = $resourceInclude;
             }
         }
 

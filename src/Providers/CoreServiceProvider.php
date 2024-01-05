@@ -53,8 +53,7 @@ class CoreServiceProvider extends ServiceProvider
                 && (isset($controller->repository) && ($repository = new $controller->repository($model)) instanceof CoreRepository)
             ) {
                 app()->bind($controller->repository, function () use ($controller, $model) {
-                    $model = request()->route()->parameter(strtolower($controller->getRouteKey()))
-                        ?? $model;
+                    $model = request()->route()?->parameter(strtolower($controller->getRouteKey())) ?? $model;
 
                     if (is_string($model)) { // The model is not resolved yet and still an id
                         $model = $controller->resolveModelFrom($model);

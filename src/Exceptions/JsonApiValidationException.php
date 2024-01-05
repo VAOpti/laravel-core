@@ -17,16 +17,16 @@ class JsonApiValidationException extends ValidationException
         $messages = $this->validator->errors()->getMessages();
 
         foreach ($messages as $source => $error) {
+            $source = str_replace('.', '/', $source);
             foreach ($error as $errorMessage) {
                 $this->getErrors()->push(
                     __('core::errors.The given data was invalid.'),
                     $errorMessage,
-                    "data/attributes/$source",
+                    $source,
                     Response::HTTP_UNPROCESSABLE_ENTITY);
             }
         }
 
         return $this->getErrors()->build();
     }
-
 }
