@@ -7,4 +7,5 @@ return [
     'Pagination failed' => 'Paginatie mislukt',
     'Invalid filter operator' => 'Ongeldige filter operator',
     'Invalid request' => 'Ongeldig request',
+    'Can not modify this resource' => 'Kan de resource niet bewerken',
 ];

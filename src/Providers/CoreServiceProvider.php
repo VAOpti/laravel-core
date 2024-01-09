@@ -63,7 +63,7 @@ class CoreServiceProvider extends ServiceProvider
                 });
 
                 Route::post($name, "{$controller->repository}@store");
-                Route::match(['put', 'patch'], $selfUri, "{$controller->repository}@update");
+                Route::match(['put', 'patch'], $selfUri, "{$controllerString}@update");
                 Route::delete($selfUri, "{$controllerString}@delete");
 
                 if ($relationships) {

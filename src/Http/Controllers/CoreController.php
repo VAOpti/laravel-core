@@ -18,12 +18,14 @@ use Symfony\Component\HttpFoundation\Response;
 use VisionAura\LaravelCore\Exceptions\CoreException;
 use VisionAura\LaravelCore\Exceptions\InvalidRelationException;
 use VisionAura\LaravelCore\Exceptions\InvalidStatusCodeException;
+use VisionAura\LaravelCore\Exceptions\MutatingNotAllowedException;
 use VisionAura\LaravelCore\Http\Enums\QueryTypeEnum;
 use VisionAura\LaravelCore\Http\Repositories\CoreRepository;
 use VisionAura\LaravelCore\Http\Requests\CoreRequest;
 use VisionAura\LaravelCore\Http\Resolvers\FilterResolver;
 use VisionAura\LaravelCore\Http\Resources\GenericCollection;
 use VisionAura\LaravelCore\Http\Resources\GenericResource;
+use VisionAura\LaravelCore\Interfaces\MutableInterface;
 use VisionAura\LaravelCore\Interfaces\RelationInterface;
 use VisionAura\LaravelCore\Support\Facades\RequestFilter;
 use VisionAura\LaravelCore\Traits\ApiResponse;
@@ -59,12 +61,12 @@ class CoreController extends Controller
             }
         }
 
-        app()->bind('filter', function () use ($relation, $model) {
+        app()->singleton('filter', function () use ($relation, $model) {
             return new FilterResolver($relation ? $model->getRelated($relation) : new $this->model());
         });
     }
 
-    public function getModel(): RelationInterface
+    public function getModel(): Model&RelationInterface
     {
         try {
             $this->validateProperty($this->model ?? null, RelationInterface::class);
@@ -176,8 +178,24 @@ class CoreController extends Controller
         return $this->apiResponse(new $this->model(), $request)->from($id)->resource();
     }
 
+    /** @throws MutatingNotAllowedException */
+    public function update(CoreRequest $request, string $id): GenericResource
+    {
+        $model = $this->getModel();
+        $this->verifyMuted($model);
+
+        $repository = $this->getRepository();
+        $request = $this->resolveRequestFrom($request);
+
+        return $repository->update($request, $model);
+    }
+
+    /** @throws MutatingNotAllowedException */
     public function delete(string $id): JsonResponse
     {
+        $model = $this->getModel();
+        $this->verifyMuted($model);
+
         $repository = $this->getRepository();
 
         if (method_exists($repository, 'beforeDelete')) {
@@ -273,5 +291,15 @@ class CoreController extends Controller
             ->validateResolved();
 
         return $request;
+    }
+
+    /** @throws MutatingNotAllowedException */
+    private function verifyMuted(Model $model): self
+    {
+        if ($model instanceof MutableInterface && $model->isMuted()) {
+            throw new MutatingNotAllowedException();
+        }
+
+        return $this;
     }
 }

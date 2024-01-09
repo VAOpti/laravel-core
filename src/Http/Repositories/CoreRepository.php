@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use Illuminate\Support\Str;
 use VisionAura\LaravelCore\Http\Requests\CoreRequest;
+use VisionAura\LaravelCore\Interfaces\RelationInterface;
 use VisionAura\LaravelCore\Support\Facades\RequestController;
 use VisionAura\LaravelCore\Traits\ApiResponse;
 use VisionAura\LaravelCore\Traits\HasErrorBag;
@@ -16,7 +17,7 @@ class CoreRepository
 
     protected Model $model;
 
-    public function __construct(Model $model)
+    public function __construct(Model&RelationInterface $model)
     {
         $this->model = $model;
     }
@@ -38,7 +39,7 @@ class CoreRepository
         ));
     }
 
-    public function getModel(): Model
+    public function getModel(): Model&RelationInterface
     {
         return $this->model;
     }
@@ -63,11 +64,12 @@ class CoreRepository
         return $this->model;
     }
 
-    protected function insert(): ?Model
+    protected function insert(): Model
     {
         $this->model->save();
+        $this->model = $this->model->fresh();
 
-        return $this->model->fresh();
+        return $this->model;
     }
 
     /** @param  array<mixed>  $attributes */

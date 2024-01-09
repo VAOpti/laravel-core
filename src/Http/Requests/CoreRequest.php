@@ -11,8 +11,11 @@ use VisionAura\LaravelCore\Rules\ValidRelation;
 
 class CoreRequest extends FormRequest
 {
-    /** @var array<string, string[]> $rules */
-    private array $rules = [
+    /** @var array<string, string[]> $rules Used to store the used rules into. */
+    private array $rules = [];
+
+    /** @var array<string, string[]> $writeRules */
+    private array $writeRules = [
         'data'            => ['required', 'array'],
         'data.type'       => ['required', 'string'],
         'data.attributes' => ['required', 'array'],
@@ -37,7 +40,7 @@ class CoreRequest extends FormRequest
     {
         if (request()->isMethod(self::METHOD_POST)) {
             $storeRules = Arr::prependKeysWith($this->storeRules(), 'data.attributes.');
-            $this->rules = [...$this->rules, ...$storeRules];
+            $this->rules = [...$this->writeRules, ...$storeRules];
 
             return;
         }
@@ -48,7 +51,7 @@ class CoreRequest extends FormRequest
             if (str_contains(request()->path(), 'relationships')) {
                 // TODO: updating relations does not work yet.
                 unset($this->rules[ 'data.attributes' ]);
-                $this->rules = [...$this->rules, ...$this->relationshipRules];
+                $this->rules = [...$this->writeRules, ...$this->relationshipRules];
                 $updateRules = Arr::prependKeysWith($this->updateRules(), 'data.relationships.');
                 $this->rules = $this->updateRelationRules();
 
@@ -56,7 +59,7 @@ class CoreRequest extends FormRequest
             }
 
             $updateRules = Arr::prependKeysWith($this->updateRules(), 'data.attributes.');
-            $this->rules = [...$this->rules, ...$updateRules];
+            $this->rules = [...$this->writeRules, ...$updateRules];
 
             return;
         }
