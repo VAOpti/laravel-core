@@ -45,7 +45,7 @@ class ValidateApplication
 
         $this->checkErrors();
 
-        $application = $this->applicationClass::where('id', $request->header('X-Application-Id'))->first();
+        $application = $this->applicationClass::where('slug', $request->header('X-Application-Id'))->first();
 
         if (! $application) {
             return $this->error(

@@ -1,6 +1,6 @@
 <?php
 
-namespace VisionAura\LaravelCore\Http\Enums;
+namespace VisionAura\LaravelCore\Enums;
 
 enum QueryTypeEnum: string
 {

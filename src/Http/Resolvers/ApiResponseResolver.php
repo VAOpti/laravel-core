@@ -3,10 +3,10 @@
 namespace VisionAura\LaravelCore\Http\Resolvers;
 
 use Illuminate\Database\Eloquent\Model;
+use VisionAura\LaravelCore\Enums\FilterOperatorsEnum;
+use VisionAura\LaravelCore\Enums\QueryTypeEnum;
 use VisionAura\LaravelCore\Exceptions\CoreException;
 use VisionAura\LaravelCore\Exceptions\ErrorBag;
-use VisionAura\LaravelCore\Http\Enums\FilterOperatorsEnum;
-use VisionAura\LaravelCore\Http\Enums\QueryTypeEnum;
 use VisionAura\LaravelCore\Http\Requests\CoreRequest;
 use VisionAura\LaravelCore\Http\Resources\GenericCollection;
 use VisionAura\LaravelCore\Http\Resources\GenericResource;
@@ -14,7 +14,7 @@ use VisionAura\LaravelCore\Support\Facades\RequestFilter;
 
 class ApiResponseResolver
 {
-    protected QueryResolver $queryResolver;
+    protected HttpQueryResolver $queryResolver;
 
     protected Model $model;
 
@@ -26,7 +26,7 @@ class ApiResponseResolver
     public function __construct(Model $model, CoreRequest $request)
     {
         $this->model = $model;
-        $this->queryResolver = new QueryResolver($model, $request);
+        $this->queryResolver = new HttpQueryResolver($model, $request);
     }
 
     public function collection(): GenericCollection

@@ -9,17 +9,18 @@ use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use Illuminate\Foundation\Validation\ValidatesRequests;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\Resources\Json\JsonResource;
 use Illuminate\Routing\Controller;
 use Illuminate\Routing\Redirector;
 use Illuminate\Support\Str;
 use Ramsey\Collection\Exception\InvalidPropertyOrMethod;
 use Symfony\Component\ErrorHandler\Error\ClassNotFoundError;
-use Symfony\Component\HttpFoundation\Response;
+use Illuminate\Http\Response;
+use VisionAura\LaravelCore\Enums\QueryTypeEnum;
 use VisionAura\LaravelCore\Exceptions\CoreException;
 use VisionAura\LaravelCore\Exceptions\InvalidRelationException;
 use VisionAura\LaravelCore\Exceptions\InvalidStatusCodeException;
 use VisionAura\LaravelCore\Exceptions\MutatingNotAllowedException;
-use VisionAura\LaravelCore\Http\Enums\QueryTypeEnum;
 use VisionAura\LaravelCore\Http\Repositories\CoreRepository;
 use VisionAura\LaravelCore\Http\Requests\CoreRequest;
 use VisionAura\LaravelCore\Http\Resolvers\FilterResolver;
@@ -176,6 +177,16 @@ class CoreController extends Controller
         $this->checkErrors();
 
         return $this->apiResponse(new $this->model(), $request)->from($id)->resource();
+    }
+
+    public function storeRules(CoreRequest $request): /*JsonResource*/ Response
+    {
+        return response('The store rules endpoint is not implemented yet. This endpoint will contain the rules that are applicable when storing a resource', Response::HTTP_NOT_IMPLEMENTED);
+    }
+
+    public function updateRules(CoreRequest $request): /*JsonResource*/ Response
+    {
+        return response('The update rules endpoint is not implemented yet. This endpoint will contain the rules that are applicable when updating a resource', Response::HTTP_NOT_IMPLEMENTED);
     }
 
     /** @throws MutatingNotAllowedException */

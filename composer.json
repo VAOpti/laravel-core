@@ -25,11 +25,17 @@
       "VisionAura\\LaravelCore\\": "src"
     }
   },
+  "scripts": {
+    "phpstan": "./vendor/bin/phpstan"
+  },
   "extra": {
     "laravel": {
       "providers": [
         "VisionAura\\LaravelCore\\Providers\\CoreServiceProvider"
       ]
     }
+  },
+  "require-dev": {
+    "larastan/larastan": "^2.9"
   }
 }

@@ -9,11 +9,11 @@ use Illuminate\Support\Arr;
 use Illuminate\Support\Str;
 use Symfony\Component\HttpFoundation\Response;
 use VisionAura\LaravelCore\Casts\CastPrimitives;
+use VisionAura\LaravelCore\Enums\FilterOperatorsEnum;
+use VisionAura\LaravelCore\Enums\QueryTypeEnum;
 use VisionAura\LaravelCore\Exceptions\CoreException;
 use VisionAura\LaravelCore\Exceptions\ErrorBag;
 use VisionAura\LaravelCore\Exceptions\InvalidRelationException;
-use VisionAura\LaravelCore\Http\Enums\FilterOperatorsEnum;
-use VisionAura\LaravelCore\Http\Enums\QueryTypeEnum;
 use VisionAura\LaravelCore\Interfaces\RelationInterface;
 use VisionAura\LaravelCore\Structs\FilterClauseStruct;
 
@@ -263,9 +263,9 @@ class FilterResolver
     {
         match ($clause->type) {
             QueryTypeEnum::WHERE, QueryTypeEnum::OR_WHERE, QueryTypeEnum::WHERE_NOT, QueryTypeEnum::OR_WHERE_NOT
-            => $query->{$clause->type->value}($clause->attribute, $clause->operator->toOperator(), $clause->resolveValue()),
+                => $query->{$clause->type->value}($clause->attribute, $clause->operator->toOperator(), $clause->resolveValue()),
             QueryTypeEnum::WHERE_IN, QueryTypeEnum::OR_WHERE_IN, QueryTypeEnum::WHERE_NOT_IN, QueryTypeEnum::OR_WHERE_NOT_IN
-            => $query->{$clause->type->value}($clause->attribute, $clause->resolveValue()),
+                => $query->{$clause->type->value}($clause->attribute, $clause->resolveValue()),
         };
 
         return $this;

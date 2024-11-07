@@ -17,7 +17,7 @@ use VisionAura\LaravelCore\Http\Requests\CoreRequest;
 use VisionAura\LaravelCore\Interfaces\RelationInterface;
 use VisionAura\LaravelCore\Support\Facades\RequestFilter;
 
-final class QueryResolver
+final class HttpQueryResolver
 {
     protected Collection|LengthAwarePaginator|Model $resolved;
 

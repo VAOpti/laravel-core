@@ -5,8 +5,8 @@ namespace VisionAura\LaravelCore\Support\Facades;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Relations\Relation;
 use Illuminate\Support\Facades\Facade;
-use VisionAura\LaravelCore\Http\Enums\FilterOperatorsEnum;
-use VisionAura\LaravelCore\Http\Enums\QueryTypeEnum;
+use VisionAura\LaravelCore\Enums\FilterOperatorsEnum;
+use VisionAura\LaravelCore\Enums\QueryTypeEnum;
 use VisionAura\LaravelCore\Http\Resolvers\FilterResolver;
 
 /**

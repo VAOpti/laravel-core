@@ -2,8 +2,8 @@
 
 namespace VisionAura\LaravelCore\Structs;
 
-use VisionAura\LaravelCore\Http\Enums\FilterOperatorsEnum;
-use VisionAura\LaravelCore\Http\Enums\QueryTypeEnum;
+use VisionAura\LaravelCore\Enums\FilterOperatorsEnum;
+use VisionAura\LaravelCore\Enums\QueryTypeEnum;
 
 final readonly class FilterClauseStruct
 {

@@ -43,9 +43,11 @@ class CoreServiceProvider extends ServiceProvider
             // Read routes
             Route::get($name, "{$controllerString}@index");
             Route::get($selfUri, "{$controllerString}@show");
+            Route::get(("{$name}/rules/store"), "{$controllerString}@storeRules}");
+            Route::get(("{$name}/rules/update"), "{$controllerString}@updateRules}");
 
             if ($relationships) {
-                Route::get("$selfUri/relationships/{relation}", "{$controllerString}@indexRelation");
+                Route::get("{$selfUri}/relationships/{relation}", "{$controllerString}@indexRelation");
             }
 
             // Write routes
@@ -63,7 +65,7 @@ class CoreServiceProvider extends ServiceProvider
                 });
 
                 Route::post($name, "{$controller->repository}@store");
-                Route::match(['put', 'patch'], $selfUri, "{$controllerString}@update");
+                Route::match(['patch', 'put'], $selfUri, "{$controllerString}@update");
                 Route::delete($selfUri, "{$controllerString}@delete");
 
                 if ($relationships) {
