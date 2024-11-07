@@ -16,6 +16,7 @@ use Illuminate\Support\Str;
 use Ramsey\Collection\Exception\InvalidPropertyOrMethod;
 use Symfony\Component\ErrorHandler\Error\ClassNotFoundError;
 use Illuminate\Http\Response;
+use Symfony\Component\Routing\Exception\MethodNotAllowedException;
 use VisionAura\LaravelCore\Enums\QueryTypeEnum;
 use VisionAura\LaravelCore\Exceptions\CoreException;
 use VisionAura\LaravelCore\Exceptions\InvalidRelationException;
@@ -28,6 +29,7 @@ use VisionAura\LaravelCore\Http\Resources\GenericCollection;
 use VisionAura\LaravelCore\Http\Resources\GenericResource;
 use VisionAura\LaravelCore\Interfaces\MutableInterface;
 use VisionAura\LaravelCore\Interfaces\RelationInterface;
+use VisionAura\LaravelCore\Models\CoreModel;
 use VisionAura\LaravelCore\Support\Facades\RequestFilter;
 use VisionAura\LaravelCore\Traits\ApiResponse;
 use VisionAura\LaravelCore\Traits\HasErrorBag;
@@ -36,7 +38,7 @@ class CoreController extends Controller
 {
     use AuthorizesRequests, ValidatesRequests, HasErrorBag, ApiResponse;
 
-    /** @var class-string $model */
+    /** @var class-string<CoreModel> $model */
     public string $model;
 
     /** @var class-string $repository */
@@ -179,24 +181,28 @@ class CoreController extends Controller
         return $this->apiResponse(new $this->model(), $request)->from($id)->resource();
     }
 
-    public function storeRules(CoreRequest $request): /*JsonResource*/ Response
+    public function storeRules(CoreRequest $request): /*JsonResource*/ JsonResponse
     {
-        return response('The store rules endpoint is not implemented yet. This endpoint will contain the rules that are applicable when storing a resource', Response::HTTP_NOT_IMPLEMENTED);
+        return new JsonResponse('The store rules endpoint is not implemented yet. This endpoint will contain the rules that are applicable when storing a resource', Response::HTTP_NOT_IMPLEMENTED);
     }
 
-    public function updateRules(CoreRequest $request): /*JsonResource*/ Response
+    public function updateRules(CoreRequest $request): /*JsonResource*/ JsonResponse
     {
-        return response('The update rules endpoint is not implemented yet. This endpoint will contain the rules that are applicable when updating a resource', Response::HTTP_NOT_IMPLEMENTED);
+        return new JsonResponse('The update rules endpoint is not implemented yet. This endpoint will contain the rules that are applicable when updating a resource', Response::HTTP_NOT_IMPLEMENTED);
     }
 
     /** @throws MutatingNotAllowedException */
     public function update(CoreRequest $request, string $id): GenericResource
     {
-        $model = $this->getModel();
+        $model = $this->model::findOrFail($id);
         $this->verifyMuted($model);
 
         $repository = $this->getRepository();
         $request = $this->resolveRequestFrom($request);
+
+        if (! method_exists($repository, 'update')) {
+            throw new MethodNotAllowedException(get_class_methods($repository));
+        }
 
         return $repository->update($request, $model);
     }
@@ -204,7 +210,7 @@ class CoreController extends Controller
     /** @throws MutatingNotAllowedException */
     public function delete(string $id): JsonResponse
     {
-        $model = $this->getModel();
+        $model = $this->model::findOrFail($id);
         $this->verifyMuted($model);
 
         $repository = $this->getRepository();
@@ -219,7 +225,7 @@ class CoreController extends Controller
 
         $model->delete();
 
-        return response()->json(status: 204);
+        return new JsonResponse(status: 204);
     }
 
     public function resolveModelFrom(string $id): ?Model
