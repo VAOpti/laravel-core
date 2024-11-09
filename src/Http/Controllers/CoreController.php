@@ -79,11 +79,16 @@ class CoreController extends Controller
             $this->getErrors()->push(__('core::errors.Server error'), $error->getMessage());
         }
 
-        $repository = $this->getRepository();
-
         $this->checkErrors();
 
-        return $repository->getModel();
+        if ($this->repository ?? null) {
+            $repository = $this->getRepository();
+            $this->checkErrors();
+
+            return $repository->getModel();
+        }
+
+        return new $this->model();
     }
 
     public function getRepository(): CoreRepository
